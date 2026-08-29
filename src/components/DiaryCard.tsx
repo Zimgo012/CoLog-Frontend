@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+
 interface Diary {
   id: string
   title: string
@@ -22,6 +24,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function DiaryCard({ diary, isCollaborated = false }: DiaryCardProps) {
+  const navigate = useNavigate()
   return (
     <div className="card bg-base-100 shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer group">
       {/* Color strip + emoji */}
@@ -57,7 +60,10 @@ export default function DiaryCard({ diary, isCollaborated = false }: DiaryCardPr
 
         {/* Open button */}
         <div className="card-actions mt-2">
-          <button className="btn btn-xs btn-ghost w-full border border-base-300 hover:btn-primary transition-all">
+          <button
+            onClick={() => navigate(`/diary/${diary.id}/pages`)}
+            className="btn btn-xs btn-ghost w-full border border-base-300 hover:btn-primary transition-all"
+          >
             Open Diary
           </button>
         </div>

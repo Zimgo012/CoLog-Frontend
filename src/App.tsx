@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import MainMenu from './pages/MainMenu'
+import DiaryPages from './pages/DiaryPages'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -19,7 +20,8 @@ function App() {
       <Route path="/register" element={<Register />} />
 
       {/* App */}
-      <Route path="/menu" element={<MainMenu />} />
+      <Route path="/diary" element={<MainMenu />} />
+      <Route path="/diary/:id/pages" element={<DiaryPages />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
