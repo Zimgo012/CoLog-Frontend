@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeftIcon,
@@ -6,11 +6,10 @@ import {
   ClockIcon,
   XMarkIcon,
   PaperAirplaneIcon,
-  CameraIcon,
-  PhotoIcon,
 } from '@heroicons/react/24/outline'
 import { useDiaryChat } from '../context/DiaryChatContext'
-import DraggableSticky, { StickyImage, randomRotation } from '../components/DraggableSticky'
+// Photo stickies — disabled for now, re-enable when ready:
+// import DraggableSticky, { StickyImage, randomRotation } from '../components/DraggableSticky'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Snapshot {
@@ -49,12 +48,6 @@ const mockSnapshots: Record<string, Snapshot> = {
   },
 }
 
-const INITIAL_STICKIES: StickyImage[] = [
-  { id: 'si1', src: 'https://placehold.co/200x150/fce4ec/c2185b?text=📸', x: 80,  y: 160, rotation: -3 },
-  { id: 'si2', src: 'https://placehold.co/200x150/f3e5f5/7b1fa2?text=📸', x: 320, y: 220, rotation: 2  },
-]
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatFullDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', {
@@ -81,10 +74,8 @@ export default function PageView() {
   const [activePanel, setActivePanel] = useState<Panel>(null)
   const [chatOpen, setChatOpen]       = useState(searchParams.get('panel') === 'chat')
   const [draft, setDraft]             = useState('')
-  const [stickies, setStickies]       = useState<StickyImage[]>(INITIAL_STICKIES)
   const [snapshot, setSnapshot]       = useState<Snapshot | null>(null)
   const bottomRef                     = useRef<HTMLDivElement>(null)
-  const fileInputRef                  = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (chatOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -97,38 +88,8 @@ export default function PageView() {
     setDraft('')
   }
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    if (!files.length) return
-    const remaining = 5 - stickies.length
-    files.slice(0, remaining).forEach((file, i) => {
-      const src = URL.createObjectURL(file)
-      setStickies(prev => [...prev, {
-        id: `si${Date.now()}-${i}`,
-        src,
-        x: 100 + Math.random() * (window.innerWidth - 300),
-        y: 100 + Math.random() * (window.innerHeight - 300),
-        rotation: randomRotation(),
-      }])
-    })
-    e.target.value = ''
-  }
-
-  const moveSticky = useCallback((stickyId: string, x: number, y: number) => {
-    setStickies(prev => prev.map(s => s.id === stickyId ? { ...s, x, y } : s))
-  }, [])
-
-  const removeSticky = useCallback((stickyId: string) => {
-    setStickies(prev => prev.filter(s => s.id !== stickyId))
-  }, [])
-
   return (
     <div className="h-screen bg-base-200 flex flex-col overflow-hidden">
-
-      {/* ── Stickies — fixed over the entire viewport ── */}
-      {stickies.map(s => (
-        <DraggableSticky key={s.id} sticky={s} onMove={moveSticky} onRemove={removeSticky} />
-      ))}
 
       {/* Navbar */}
       <div className="navbar bg-base-100 shadow-sm px-4 gap-2 shrink-0 relative z-50">
@@ -148,24 +109,10 @@ export default function PageView() {
           >
             <ClockIcon className="w-4 h-4" />
           </button>
-          {stickies.length < 5 ? (
-            <>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="btn btn-ghost btn-sm gap-1.5"
-                title="Add photo sticky"
-              >
-                <CameraIcon className="w-4 h-4" />
-                {stickies.length > 0 && <span className="badge badge-xs">{stickies.length}/5</span>}
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
-            </>
-          ) : (
-            <div className="flex items-center gap-1 px-2 text-base-content/40">
-              <PhotoIcon className="w-4 h-4" />
-              <span className="badge badge-xs">5/5</span>
-            </div>
-          )}
+          {/* Photo stickies button — disabled until feature is ready */}
+          {/* <button className="btn btn-ghost btn-sm btn-circle" title="Add photo (coming soon)" disabled>
+            <CameraIcon className="w-4 h-4" />
+          </button> */}
           <div className="dropdown dropdown-end ml-1">
             <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar placeholder btn-sm">
               <div className="bg-primary text-primary-content rounded-full w-8 flex items-center justify-center font-bold text-xs">JD</div>
@@ -189,11 +136,6 @@ export default function PageView() {
             <div>
               <h1 className="text-2xl font-bold">{formatFullDate(page.createdAt)}</h1>
               <p className="text-xs text-base-content/40 mt-1">Written at {formatTime(page.createdAt)}</p>
-              {stickies.length > 0 && (
-                <p className="text-xs text-base-content/30 mt-0.5">
-                  📌 {stickies.length} photo{stickies.length > 1 ? 's' : ''} pinned — drag them anywhere
-                </p>
-              )}
             </div>
 
             {/* ── YJS Editor area ── */}
