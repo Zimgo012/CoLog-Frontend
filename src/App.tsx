@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { DiaryChatProvider } from './context/DiaryChatContext'
 import HomeLayout from './components/HomeLayout'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -10,23 +11,25 @@ import NotFound from './pages/NotFound'
 
 function App() {
   return (
-    <Routes>
-      {/* Home — hero, no navbar */}
-      <Route path="/" element={<HomeLayout />}>
-        <Route index element={<Home />} />
-      </Route>
+    <DiaryChatProvider>
+      <Routes>
+        {/* Home — hero, no navbar */}
+        <Route path="/" element={<HomeLayout />}>
+          <Route index element={<Home />} />
+        </Route>
 
-      {/* Auth — standalone full-screen pages */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+        {/* Auth — standalone full-screen pages */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* App */}
-      <Route path="/diary" element={<MainMenu />} />
-      <Route path="/diary/:id/pages" element={<DiaryPages />} />
-      <Route path="/diary/:id/pages/:pageId" element={<PageView />} />
+        {/* App */}
+        <Route path="/diary" element={<MainMenu />} />
+        <Route path="/diary/:id/pages" element={<DiaryPages />} />
+        <Route path="/diary/:id/pages/:pageId" element={<PageView />} />
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </DiaryChatProvider>
   )
 }
 
