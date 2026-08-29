@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import MainMenu from './pages/MainMenu'
 import DiaryPages from './pages/DiaryPages'
+import PageView from './pages/PageView'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
       {/* App */}
       <Route path="/diary" element={<MainMenu />} />
       <Route path="/diary/:id/pages" element={<DiaryPages />} />
+      <Route path="/diary/:id/pages/:pageId" element={<PageView />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeftIcon, PlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, PlusIcon, DocumentTextIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 const mockDiary = {
@@ -219,7 +219,7 @@ export default function DiaryPages() {
                     {index + 1}
                   </div>
 
-                  {/* Content */}
+          {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">
                       {formatDate(page.createdAt)}
@@ -229,7 +229,17 @@ export default function DiaryPages() {
                     </p>
                   </div>
 
-                  <DocumentTextIcon className="w-4 h-4 text-base-content/20 group-hover:text-primary flex-shrink-0 transition-colors duration-200" />
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Chat button */}
+                    <button
+                      onClick={e => { e.stopPropagation(); navigate(`/diary/${id}/pages/${page.id}?panel=chat`) }}
+                      className="btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Open chat"
+                    >
+                      <ChatBubbleLeftRightIcon className="w-3.5 h-3.5 text-base-content/40" />
+                    </button>
+                    <DocumentTextIcon className="w-4 h-4 text-base-content/20 group-hover:text-primary transition-colors duration-200" />
+                  </div>
                 </div>
               </div>
             ))}
