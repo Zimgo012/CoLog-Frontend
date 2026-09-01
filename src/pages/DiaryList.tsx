@@ -1,7 +1,28 @@
 import DiaryCard from '../components/DiaryCard'
 import { BookOpenIcon, UsersIcon, PlusIcon } from '@heroicons/react/24/outline'
 
+
+
 // Mock data — replace with API data later
+
+//fetch diary/my
+// sample diary out would be like so:
+//
+//{
+//     "diaryId": 1,
+//     "title": "diary1",
+//     "createdAt": "2026-08-29",
+//     "lastOpenedAt": "2026-08-29",
+//     "documents": [
+//         {
+//             "documentId": 1,
+//             "date": "2026-08-29T22:20:20.329643",
+//             "yjsState": null
+//         }
+//     ],
+//     "public": true
+// }
+
 const myDiaries = [
   {
     id: '1',

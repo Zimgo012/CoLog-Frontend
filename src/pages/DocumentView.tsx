@@ -11,6 +11,8 @@ import { useDiaryChat } from '../context/DiaryChatContext'
 // Photo stickies — disabled for now, re-enable when ready:
 // import DraggableSticky, { StickyImage, randomRotation } from '../components/DraggableSticky'
 
+
+
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Snapshot {
   id: string
@@ -18,6 +20,17 @@ interface Snapshot {
   takenAt: string
   preview: string
 }
+
+
+// ── Mock data ────────────────────────────────────────────────────────────────
+
+// Sample data from api using GET {{baseUrl}}/document/{diaryId}/{documentId}
+//{
+//     "documentId": 1,
+//     "date": "2026-08-29T22:26:43.772656",
+//     "yjsState": null
+// }
+
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 const mockPage = {
