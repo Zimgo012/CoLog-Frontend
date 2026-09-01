@@ -1,34 +1,43 @@
 import { useEffect, useState } from "react";
 import DiaryCard from "../components/DiaryCard";
-import {BookOpenIcon, UsersIcon, PlusIcon} from "@heroicons/react/24/outline";
-import {getDiaries, getCollaboratedDiaries} from "../api/diary";
+import { BookOpenIcon, UsersIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { getDiaries, getCollaboratedDiaries } from "../api/diary";
 import Navbar from "../components/Navbar";
+import { useDiarySession } from "../context/DiarySessionContext";
 
 
-// Mock data — replace with API data later
+// Colour palette cycled by index for card strips
+const COLORS = [
+  'bg-primary/20',
+  'bg-secondary/20',
+  'bg-accent/20',
+  'bg-info/20',
+  'bg-success/20',
+  'bg-warning/20',
+  'bg-error/20',
+]
 
-//fetch diary/my
-// sample diary out would be like so:
-//
-//{
-//     "diaryId": 1,
-//     "title": "diary1",
-//     "createdAt": "2026-08-29",
-//     "lastOpenedAt": "2026-08-29",
-//     "documents": [
-//         {
-//             "documentId": 1,
-//             "date": "2026-08-29T22:20:20.329643",
-//             "yjsState": null
-//         }
-//     ],
-//     "public": true
-// }
+function normalise(raw: any, index: number) {
+  return {
+    id:           String(raw.diaryId ?? raw.id),
+    title:        raw.title,
+    createdAt:    raw.createdAt,
+    lastOpenedAt: raw.lastOpenedAt,
+    emoji:        raw.emoji  ?? '📓',
+    color:        raw.color  ?? COLORS[index % COLORS.length],
+    owner:        raw.owner  ?? undefined,
+  }
+}
 
 export default function DiaryList() {
+  const { closeSession } = useDiarySession();
   const [myDiaries, setMyDiaries] = useState<any[]>([]);
-  const [collaboratedDiaries, setCollaboratedDiaries] =
-      useState<any[]>([]);
+  const [collaboratedDiaries, setCollaboratedDiaries] = useState<any[]>([]);
+
+  // User is back at the diary list — disconnect any active diary session
+  useEffect(() => {
+    closeSession();
+  }, []);
 
   useEffect(() => {
 
@@ -40,8 +49,8 @@ export default function DiaryList() {
           getCollaboratedDiaries()
         ]);
 
-        setMyDiaries(my);
-        setCollaboratedDiaries(collaborated);
+        setMyDiaries(my.map(normalise));
+        setCollaboratedDiaries(collaborated.map(normalise));
 
       } catch (error) {
         console.error("Failed to fetch diaries:", error);

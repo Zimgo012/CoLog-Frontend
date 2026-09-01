@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeftIcon,
@@ -7,11 +7,8 @@ import {
   XMarkIcon,
   PaperAirplaneIcon,
 } from '@heroicons/react/24/outline'
-import { useDiaryChat } from '../context/DiaryChatContext'
-// Photo stickies — disabled for now, re-enable when ready:
-// import DraggableSticky, { StickyImage, randomRotation } from '../components/DraggableSticky'
-
-
+import Navbar from '../components/Navbar'
+import { useDiarySession } from '../context/DiarySessionContext'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Snapshot {
@@ -21,26 +18,7 @@ interface Snapshot {
   preview: string
 }
 
-
-// ── Mock data ────────────────────────────────────────────────────────────────
-
-// Sample data from api using GET {{baseUrl}}/document/{diaryId}/{documentId}
-//{
-//     "documentId": 1,
-//     "date": "2026-08-29T22:26:43.772656",
-//     "yjsState": null
-// }
-
-
-// ── Mock data ────────────────────────────────────────────────────────────────
-const mockPage = {
-  id: 'p15',
-  createdAt: '2026-08-29T20:00:00',
-  diaryId: '1',
-  diaryTitle: 'My Daily Thoughts',
-  diaryEmoji: '📔',
-}
-
+// ── Mock data (revision history) ─────────────────────────────────────────────
 const mockHistory = [
   { id: 'h1', user: 'You',   action: 'Created this page',              at: '2026-08-29T20:00:00', snapshotId: null },
   { id: 'h2', user: 'You',   action: 'Edited the document',            at: '2026-08-29T20:15:42', snapshotId: null },
@@ -62,11 +40,6 @@ const mockSnapshots: Record<string, Snapshot> = {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function formatFullDate(d: string) {
-  return new Date(d).toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  })
-}
 function formatTime(d: string) {
   return new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
@@ -74,15 +47,12 @@ function formatTime(d: string) {
 // ── Component ────────────────────────────────────────────────────────────────
 type Panel = 'history' | null
 
-export default function PageView() {
-  const { id } = useParams()
+export default function DocumentView() {
+  const { id, pageId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { getMessages, sendMessage } = useDiaryChat()
 
-  const page     = mockPage
-  const diaryId  = id ?? page.diaryId
-  const messages = getMessages(diaryId)
+  const { openSession, wsStatus, chatMessages, sendChat } = useDiarySession()
 
   const [activePanel, setActivePanel] = useState<Panel>(null)
   const [chatOpen, setChatOpen]       = useState(searchParams.get('panel') === 'chat')
@@ -90,31 +60,42 @@ export default function PageView() {
   const [snapshot, setSnapshot]       = useState<Snapshot | null>(null)
   const bottomRef                     = useRef<HTMLDivElement>(null)
 
+  // Re-open (or reuse) the session for this diary — idempotent for same diaryId
+  useEffect(() => {
+    if (!id) return
+    openSession(Number(id))
+  }, [id])
+
+  // ── Auto-scroll chat ──────────────────────────────────────────────────────
   useEffect(() => {
     if (chatOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatOpen, messages])
+  }, [chatOpen, chatMessages])
 
-  function handleSend() {
+  // ── Send chat ─────────────────────────────────────────────────────────────
+  const handleSend = useCallback(() => {
     const text = draft.trim()
     if (!text) return
-    sendMessage(diaryId, text)
+    sendChat(0, Number(pageId ?? 0), text)
     setDraft('')
-  }
+  }, [draft, pageId, sendChat])
 
   return (
     <div className="h-screen bg-base-200 flex flex-col overflow-hidden">
 
-      {/* Navbar */}
-      <div className="navbar bg-base-100 shadow-sm px-4 gap-2 shrink-0 relative z-50">
-        <button onClick={() => navigate(`/diary/${id}/pages`)} className="btn btn-ghost btn-sm btn-circle" aria-label="Back">
-          <ArrowLeftIcon className="w-5 h-5" />
-        </button>
-        <div className="flex-1 flex items-center gap-1.5 text-sm min-w-0">
-          <span className="text-base-content/40 hidden sm:inline">{page.diaryEmoji} {page.diaryTitle}</span>
-          <span className="text-base-content/30 hidden sm:inline">/</span>
-          <span className="font-semibold truncate">{formatFullDate(page.createdAt)}</span>
-        </div>
-        <div className="flex items-center gap-1">
+      <Navbar
+        left={
+          <>
+            <button onClick={() => navigate(`/diary/${id}/pages`)} className="btn btn-ghost btn-sm btn-circle" aria-label="Back">
+              <ArrowLeftIcon className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-1.5 text-sm min-w-0">
+              <span className="font-semibold truncate">
+                {pageId ? `Document ${pageId}` : 'Document'}
+              </span>
+            </div>
+          </>
+        }
+        actions={
           <button
             onClick={() => setActivePanel(p => p === 'history' ? null : 'history')}
             className={`btn btn-sm btn-circle ${activePanel === 'history' ? 'btn-primary' : 'btn-ghost'}`}
@@ -122,22 +103,8 @@ export default function PageView() {
           >
             <ClockIcon className="w-4 h-4" />
           </button>
-          {/* Photo stickies button — disabled until feature is ready */}
-          {/* <button className="btn btn-ghost btn-sm btn-circle" title="Add photo (coming soon)" disabled>
-            <CameraIcon className="w-4 h-4" />
-          </button> */}
-          <div className="dropdown dropdown-end ml-1">
-            <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar placeholder btn-sm">
-              <div className="bg-primary text-primary-content rounded-full w-8 flex items-center justify-center font-bold text-xs">JD</div>
-            </div>
-            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-48">
-              <li><a>Profile</a></li>
-              <li><a>Settings</a></li>
-              <li><a className="text-error">Logout</a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
@@ -145,11 +112,6 @@ export default function PageView() {
         {/* ── Main content ── */}
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 py-8 max-w-3xl flex flex-col gap-6">
-
-            <div>
-              <h1 className="text-2xl font-bold">{formatFullDate(page.createdAt)}</h1>
-              <p className="text-xs text-base-content/40 mt-1">Written at {formatTime(page.createdAt)}</p>
-            </div>
 
             {/* ── YJS Editor area ── */}
             <div className="bg-base-100 rounded-2xl shadow-sm border border-base-300">
@@ -211,8 +173,8 @@ export default function PageView() {
         aria-label="Toggle chat"
       >
         <ChatBubbleLeftRightIcon className={`w-5 h-5 ${chatOpen ? 'text-primary' : 'text-base-content/50'}`} />
-        {messages.length > 0 && (
-          <span className="badge badge-xs badge-secondary">{messages.length}</span>
+        {chatMessages.length > 0 && (
+          <span className="badge badge-xs badge-secondary">{chatMessages.length}</span>
         )}
         <span className="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest" style={{ writingMode: 'vertical-rl' }}>
           Chat
@@ -229,38 +191,55 @@ export default function PageView() {
         <div className="flex items-center justify-between px-4 py-3 border-b border-base-300 shrink-0 mt-14">
           <div>
             <p className="font-semibold text-sm">💬 Diary Chat</p>
-            <p className="text-[10px] text-base-content/40">{page.diaryEmoji} {page.diaryTitle}</p>
           </div>
-          <button onClick={() => setChatOpen(false)} className="btn btn-ghost btn-xs btn-circle">
-            <XMarkIcon className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <span
+              title={wsStatus}
+              className={`w-2 h-2 rounded-full ${
+                wsStatus === 'connected'  ? 'bg-success' :
+                wsStatus === 'connecting' ? 'bg-warning animate-pulse' :
+                wsStatus === 'error'      ? 'bg-error' : 'bg-base-300'
+              }`}
+            />
+            <button onClick={() => setChatOpen(false)} className="btn btn-ghost btn-xs btn-circle">
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
-          {messages.map(msg => (
-            <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.self ? 'items-end' : 'items-start'}`}>
-              <span className="text-[10px] text-base-content/40 px-1">{msg.user}</span>
-              <div className={`px-3 py-2 rounded-2xl text-sm max-w-[85%] ${
-                msg.self
-                  ? 'bg-primary text-primary-content rounded-br-sm'
-                  : 'bg-base-200 text-base-content rounded-bl-sm'
-              }`}>
-                {msg.text}
+          {chatMessages.length === 0 && (
+            <p className="text-xs text-base-content/30 text-center mt-4">No messages yet.</p>
+          )}
+          {chatMessages.map((msg, i) => (
+            <div key={i} className="flex flex-col gap-0.5 items-start">
+              <span className="text-[10px] text-base-content/40 px-1">
+                {msg.senderName ?? `User ${msg.senderId}`}
+              </span>
+              <div className="px-3 py-2 rounded-2xl text-sm max-w-[85%] bg-base-200 text-base-content rounded-bl-sm">
+                {msg.content}
               </div>
-              <span className="text-[10px] text-base-content/30 px-1">{formatTime(msg.at)}</span>
+              <span className="text-[10px] text-base-content/30 px-1">{msg.timestamp}</span>
             </div>
           ))}
           <div ref={bottomRef} />
         </div>
+
         <div className="px-3 py-3 border-t border-base-300 flex gap-2 items-end shrink-0">
           <textarea
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-            placeholder="Say something..."
+            placeholder={wsStatus === 'connected' ? 'Say something...' : 'Connecting…'}
             rows={1}
+            disabled={wsStatus !== 'connected'}
             className="textarea textarea-bordered textarea-sm flex-1 resize-none text-sm leading-snug"
           />
-          <button onClick={handleSend} disabled={!draft.trim()} className="btn btn-primary btn-sm btn-circle flex-shrink-0">
+          <button
+            onClick={handleSend}
+            disabled={!draft.trim() || wsStatus !== 'connected'}
+            className="btn btn-primary btn-sm btn-circle flex-shrink-0"
+          >
             <PaperAirplaneIcon className="w-4 h-4" />
           </button>
         </div>
