@@ -1,6 +1,13 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Home() {
+  const { isAuthenticated } = useAuth()
+
+  if (isAuthenticated) {
+    return <Navigate to="/diary" replace />
+  }
+
   return (
     <div className="flex flex-col">
 

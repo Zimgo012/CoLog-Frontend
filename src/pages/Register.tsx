@@ -1,6 +1,13 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Register() {
+  const { isAuthenticated } = useAuth()
+
+  if (isAuthenticated) {
+    return <Navigate to="/diary" replace />
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-base-200 px-4">
       <div className="card w-full max-w-sm bg-base-100 shadow-xl">

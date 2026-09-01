@@ -1,6 +1,8 @@
-import DiaryCard from '../components/DiaryCard'
-import { BookOpenIcon, UsersIcon, PlusIcon } from '@heroicons/react/24/outline'
-
+import { useEffect, useState } from "react";
+import DiaryCard from "../components/DiaryCard";
+import {BookOpenIcon, UsersIcon, PlusIcon} from "@heroicons/react/24/outline";
+import {getDiaries, getCollaboratedDiaries} from "../api/diary";
+import Navbar from "../components/Navbar";
 
 
 // Mock data — replace with API data later
@@ -23,85 +25,37 @@ import { BookOpenIcon, UsersIcon, PlusIcon } from '@heroicons/react/24/outline'
 //     "public": true
 // }
 
-const myDiaries = [
-  {
-    id: '1',
-    title: 'My Daily Thoughts',
-    createdAt: '2026-01-10',
-    lastOpenedAt: '2026-08-28',
-    emoji: '📔',
-    color: 'bg-pink-100',
-  },
-  {
-    id: '2',
-    title: 'Travel Adventures',
-    createdAt: '2026-03-05',
-    lastOpenedAt: '2026-08-20',
-    emoji: '✈️',
-    color: 'bg-sky-100',
-  },
-  {
-    id: '3',
-    title: 'Recipe Collection',
-    createdAt: '2026-05-18',
-    lastOpenedAt: '2026-07-14',
-    emoji: '🍳',
-    color: 'bg-yellow-100',
-  },
-]
+export default function DiaryList() {
+  const [myDiaries, setMyDiaries] = useState<any[]>([]);
+  const [collaboratedDiaries, setCollaboratedDiaries] =
+      useState<any[]>([]);
 
-const collaboratedDiaries = [
-  {
-    id: '4',
-    title: 'Team Sprint Log',
-    createdAt: '2026-02-01',
-    lastOpenedAt: '2026-08-29',
-    emoji: '🗂️',
-    color: 'bg-violet-100',
-    owner: 'Maria Santos',
-  },
-  {
-    id: '5',
-    title: 'Book Club Notes',
-    createdAt: '2026-06-12',
-    lastOpenedAt: '2026-08-15',
-    emoji: '📚',
-    color: 'bg-emerald-100',
-    owner: 'Luis Reyes',
-  },
-]
+  useEffect(() => {
 
-export default function Dashboard() {
+    async function fetchDiaries() {
+
+      try {
+        const [my, collaborated] = await Promise.all([
+          getDiaries(),
+          getCollaboratedDiaries()
+        ]);
+
+        setMyDiaries(my);
+        setCollaboratedDiaries(collaborated);
+
+      } catch (error) {
+        console.error("Failed to fetch diaries:", error);
+      }
+    }
+
+    fetchDiaries();
+
+  }, []);
+
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
 
-      {/* Navbar */}
-      <div className="navbar bg-base-100 shadow-sm px-6">
-        <div className="flex-1">
-          <span className="text-xl font-extrabold text-primary">CoLog</span>
-        </div>
-        <div className="flex-none gap-3 items-center">
-          <div className="dropdown dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
-              className="btn btn-ghost btn-circle avatar placeholder"
-            >
-              <div className="bg-primary text-primary-content rounded-full w-9 flex items-center justify-center font-bold text-sm">
-                JD
-              </div>
-            </div>
-            <ul
-              tabIndex={0}
-              className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-48"
-            >
-              <li><a>Profile</a></li>
-              <li><a>Settings</a></li>
-              <li><a className="text-error">Logout</a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <Navbar />
 
       {/* Page content */}
       <main className="flex-1 container mx-auto px-4 py-10 max-w-5xl">
