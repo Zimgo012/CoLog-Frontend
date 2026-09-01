@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
-import { DiaryChatProvider } from './context/DiaryChatContext'
+import { DiarySessionProvider } from './context/DiarySessionContext'
 import HomeLayout from './components/HomeLayout'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -14,7 +14,7 @@ import ProtectedRoute from "./auth/ProtectedRoute.tsx";
 function App() {
   return (
     <AuthProvider>
-      <DiaryChatProvider>
+      <DiarySessionProvider>
         <Routes>
           {/* Home — hero, no navbar */}
           <Route path="/" element={<HomeLayout />}>
@@ -35,7 +35,7 @@ function App() {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </DiaryChatProvider>
+      </DiarySessionProvider>
     </AuthProvider>
   )
 }
