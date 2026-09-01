@@ -8,13 +8,15 @@ import MainMenu from './pages/DiaryList.tsx'
 import DiaryPages from './pages/DiaryPages'
 import DocumentView from './pages/DocumentView.tsx'
 import NotFound from './pages/NotFound'
-import {AuthProvider} from "./auth/AuthContext.tsx";
+import { AuthProvider } from "./auth/AuthContext.tsx";
 import ProtectedRoute from "./auth/ProtectedRoute.tsx";
+import SessionExpiredModal from "./components/SessionExpiredModal.tsx";
 
 function App() {
   return (
     <AuthProvider>
       <DiarySessionProvider>
+        <SessionExpiredModal />
         <Routes>
           {/* Home — hero, no navbar */}
           <Route path="/" element={<HomeLayout />}>
@@ -31,7 +33,6 @@ function App() {
             <Route path="/diary/:id/pages" element={<DiaryPages />} />
             <Route path="/diary/:id/pages/:pageId" element={<DocumentView />} />
           </Route>
-
 
           <Route path="*" element={<NotFound />} />
         </Routes>
