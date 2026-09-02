@@ -28,3 +28,18 @@ export async function getDocument(diaryId: number, documentId: number): Promise<
 
     return response.json();
 }
+
+// CREATE document
+export async function createDocument(body : object, diaryId : number): Promise<Document> {
+    const response = await apiFetch(`/document/${diaryId}`,{
+        method : "POST",
+        body : JSON.stringify(body),
+    });
+    if (!response.ok) {
+        throw new Error("Failed to create document");
+    }
+
+    return response.json();
+}
+
+
