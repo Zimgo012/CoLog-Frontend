@@ -12,6 +12,7 @@ import {
     type StompStatus,
     type DiarySessionHandle,
 } from '../api/websocket'
+import { getChatHistory } from '../api/extra'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,8 @@ interface DiarySessionContextValue {
     openSession:    (diaryId: number) => void
     /** Disconnect and clear state. Call when navigating away from the diary entirely. */
     closeSession:   ()                => void
+    /** Fetch and seed chat history for the active diary. */
+    loadHistory:    (diaryId: number) => Promise<void>
     /** Current STOMP connection status. */
     wsStatus:       StompStatus
     /** Accumulated chat messages for the active diary. */
@@ -65,6 +68,23 @@ export function DiarySessionProvider({ children }: { children: ReactNode }) {
         })
     }, [])
 
+    const loadHistory = useCallback(async (diaryId: number) => {
+        try {
+            const raw: any[] = await getChatHistory(diaryId)
+            if (!Array.isArray(raw)) return
+            const history: ChatMessage[] = raw.map(item => ({
+                documentId: item.documentId  ?? 0,
+                senderId:   item.userSenderId ?? item.senderId ?? 0,
+                senderName: item.userSenderName ?? item.senderName ?? '',
+                content:    item.content   ?? '',
+                timestamp:  item.timestamp ?? '',
+            }))
+            setChatMessages(history)
+        } catch {
+            // History unavailable — leave messages as-is
+        }
+    }, [])
+
     const closeSession = useCallback(() => {
         unsubChatRef.current?.()
         sessionRef.current?.disconnect()
@@ -83,6 +103,7 @@ export function DiarySessionProvider({ children }: { children: ReactNode }) {
         <DiarySessionContext.Provider value={{
             openSession,
             closeSession,
+            loadHistory,
             wsStatus,
             chatMessages,
             sendChat,
