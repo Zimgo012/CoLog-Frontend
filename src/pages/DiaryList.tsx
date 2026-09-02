@@ -22,7 +22,6 @@ function normalise(raw: any, index: number) {
     id:           String(raw.diaryId ?? raw.id),
     title:        raw.title,
     createdAt:    raw.createdAt,
-    lastOpenedAt: raw.lastOpenedAt,
     emoji:        raw.emoji  ?? '📓',
     color:        raw.color  ?? COLORS[index % COLORS.length],
     owner:        raw.owner  ?? undefined,

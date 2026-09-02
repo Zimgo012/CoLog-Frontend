@@ -43,13 +43,10 @@ export default function Login() {
 
         try {
 
-            const token = await loginApi(
-                username,
-                password
-            );
+            const response = await loginApi(username, password);
 
-            // Store token through AuthContext
-            saveToken(token);
+            // Store full profile through AuthContext
+            saveToken(response);
 
             // Login succeeded
             navigate("/diary");
