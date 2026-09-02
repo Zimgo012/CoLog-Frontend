@@ -4,7 +4,6 @@ interface Diary {
   id: string
   title: string
   createdAt: string
-  lastOpenedAt: string
   emoji: string
   color: string
   owner?: string
@@ -52,10 +51,7 @@ export default function DiaryCard({ diary, isCollaborated = false }: DiaryCardPr
             <span>🗓️</span>
             <span>Created {formatDate(diary.createdAt)}</span>
           </div>
-          <div className="flex items-center gap-1 text-xs text-base-content/50">
-            <span>🕐</span>
-            <span>Opened {formatDate(diary.lastOpenedAt)}</span>
-          </div>
+
         </div>
 
         {/* Open button */}
