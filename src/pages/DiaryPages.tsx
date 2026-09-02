@@ -1,17 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftIcon,
   PlusIcon,
   DocumentTextIcon,
-  ChatBubbleLeftRightIcon,
-  XMarkIcon,
-  PaperAirplaneIcon,
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
+import ChatPopout from '../components/ChatPopout'
 import { getDiary } from '../api/diary'
-import { getDocuments, type Document } from '../api/document'
+import { getDocuments, createDocument, type Document } from '../api/document'
 import { useDiarySession } from '../context/DiarySessionContext'
+import { useAuth } from '../auth/AuthContext'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(d: string) {
@@ -21,21 +20,38 @@ function formatTime(d: string) {
   return new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
+const VALID_COLORS = ["blue","purple","pink","red","orange","yellow","green","teal"]
+
+function normaliseDiary(diary: any) {
+  let emoji: string = diary.emoji ?? ""
+  let color: string = diary.color ?? ""
+
+  const emojiIsColorKey = VALID_COLORS.includes(emoji)
+  const colorIsEmoji    = color.length > 0 && !VALID_COLORS.includes(color)
+  if (emojiIsColorKey && colorIsEmoji) {
+    ;[emoji, color] = [color, emoji]
+  }
+
+  if (!emoji || VALID_COLORS.includes(emoji)) emoji = "📓"
+
+  return { title: diary.title ?? "", emoji }
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function DiaryPages() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const { openSession, wsStatus, chatMessages, sendChat } = useDiarySession()
+  const { openSession, wsStatus, chatMessages, sendChat, loadHistory } = useDiarySession()
+  const { user } = useAuth()
 
   const [diaryTitle, setDiaryTitle] = useState('')
+  const [diaryEmoji, setDiaryEmoji] = useState('📔')
   const [documents, setDocuments]   = useState<Document[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
 
-  const [chatOpen, setChatOpen] = useState(false)
-  const [draft, setDraft]       = useState('')
-  const bottomRef               = useRef<HTMLDivElement>(null)
+  const [addingPage, setAddingPage] = useState(false)
 
   // ── Open session on mount ────────────────────────────────────────────────
   // Do NOT close on unmount here — DocumentView keeps the same session alive.
@@ -52,9 +68,11 @@ export default function DiaryPages() {
     setLoading(true)
     setError(null)
 
-    Promise.all([getDiary(numId), getDocuments(numId)])
+    Promise.all([getDiary(numId), getDocuments(numId), loadHistory(numId)])
       .then(([diary, docs]) => {
-        setDiaryTitle(diary.title)
+        const { title, emoji } = normaliseDiary(diary)
+        setDiaryTitle(title)
+        setDiaryEmoji(emoji)
         setDocuments([...docs].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         ))
@@ -63,19 +81,20 @@ export default function DiaryPages() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // ── Auto-scroll chat ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (chatOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatOpen, chatMessages])
-
-  // ── Send chat ─────────────────────────────────────────────────────────────
-  const handleSend = useCallback(() => {
-    const text = draft.trim()
-    if (!text) return
-    // senderId 0, documentId 0 — swap for real IDs when available
-    sendChat(0, 0, text)
-    setDraft('')
-  }, [draft, sendChat])
+  // ── Add page ──────────────────────────────────────────────────────────────
+  const handleNewPage = useCallback(async () => {
+    if (!id || addingPage) return
+    setAddingPage(true)
+    try {
+      const newDoc = await createDocument({}, Number(id))
+      setDocuments(prev => [newDoc, ...prev])
+      navigate(`/diary/${id}/pages/${newDoc.documentId}`)
+    } catch {
+      // could add a toast here later
+    } finally {
+      setAddingPage(false)
+    }
+  }, [id, addingPage, navigate])
 
   // ── Shared nav left slot ──────────────────────────────────────────────────
   const navLeft = (
@@ -117,33 +136,16 @@ export default function DiaryPages() {
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
 
-      <Navbar
-        left={navLeft}
-        actions={
-          <button
-            onClick={() => setChatOpen(o => !o)}
-            className={`btn btn-sm gap-1.5 ${chatOpen ? 'btn-primary' : 'btn-ghost border border-base-300'}`}
-          >
-            <ChatBubbleLeftRightIcon className="w-4 h-4" />
-            <span className="hidden sm:inline text-xs">Chat</span>
-            {chatMessages.length > 0 && (
-              <span className="badge badge-xs badge-secondary">{chatMessages.length}</span>
-            )}
-          </button>
-        }
-      />
+      <Navbar left={navLeft} />
 
       {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* Page list */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 py-10 max-w-3xl">
+      <main className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 py-10 max-w-3xl">
 
             {/* Diary header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <span className="text-4xl">📔</span>
+                <span className="text-4xl">{diaryEmoji}</span>
                 <div>
                   <h1 className="text-2xl font-bold leading-tight">{diaryTitle}</h1>
                   <p className="text-base-content/40 text-xs mt-0.5">
@@ -151,8 +153,15 @@ export default function DiaryPages() {
                   </p>
                 </div>
               </div>
-              <button className="btn btn-primary btn-sm gap-1">
-                <PlusIcon className="w-4 h-4" />
+              <button
+                onClick={handleNewPage}
+                disabled={addingPage}
+                className="btn btn-primary btn-sm gap-1"
+              >
+                {addingPage
+                  ? <span className="loading loading-spinner loading-xs" />
+                  : <PlusIcon className="w-4 h-4" />
+                }
                 New Page
               </button>
             </div>
@@ -190,70 +199,13 @@ export default function DiaryPages() {
           </div>
         </main>
 
-        {/* Chat drawer */}
-        {chatOpen && (
-          <aside className="w-80 shrink-0 bg-base-100 border-l border-base-300 flex flex-col shadow-lg">
-
-            <div className="flex items-center justify-between px-4 py-3 border-b border-base-300">
-              <div>
-                <p className="font-semibold text-sm">💬 Diary Chat</p>
-                <p className="text-[10px] text-base-content/40">📔 {diaryTitle}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  title={wsStatus}
-                  className={`w-2 h-2 rounded-full ${
-                    wsStatus === 'connected'  ? 'bg-success' :
-                    wsStatus === 'connecting' ? 'bg-warning animate-pulse' :
-                    wsStatus === 'error'      ? 'bg-error' : 'bg-base-300'
-                  }`}
-                />
-                <button onClick={() => setChatOpen(false)} className="btn btn-ghost btn-xs btn-circle">
-                  <XMarkIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
-              {chatMessages.length === 0 && (
-                <p className="text-xs text-base-content/30 text-center mt-4">No messages yet.</p>
-              )}
-              {chatMessages.map((msg, i) => (
-                <div key={i} className="flex flex-col gap-0.5 items-start">
-                  <span className="text-[10px] text-base-content/40 px-1">
-                    {msg.senderName ?? `User ${msg.senderId}`}
-                  </span>
-                  <div className="px-3 py-2 rounded-2xl text-sm max-w-[85%] bg-base-200 text-base-content rounded-bl-sm">
-                    {msg.content}
-                  </div>
-                  <span className="text-[10px] text-base-content/30 px-1">{msg.timestamp}</span>
-                </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
-
-            <div className="px-3 py-3 border-t border-base-300 flex gap-2 items-end">
-              <textarea
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                placeholder={wsStatus === 'connected' ? 'Say something...' : 'Connecting…'}
-                rows={1}
-                disabled={wsStatus !== 'connected'}
-                className="textarea textarea-bordered textarea-sm flex-1 resize-none text-sm leading-snug"
-              />
-              <button
-                onClick={handleSend}
-                disabled={!draft.trim() || wsStatus !== 'connected'}
-                className="btn btn-primary btn-sm btn-circle flex-shrink-0"
-              >
-                <PaperAirplaneIcon className="w-4 h-4" />
-              </button>
-            </div>
-
-          </aside>
-        )}
-      </div>
+      {/* Floating chat popout */}
+      <ChatPopout
+        messages={chatMessages}
+        wsStatus={wsStatus}
+        currentUserId={user?.id}
+        onSend={(text) => sendChat(0, 0, text)}
+      />
 
       <footer className="footer footer-center p-4 bg-base-100 text-base-content/40 text-xs border-t border-base-300">
         <p>© {new Date().getFullYear()} CoLog. All rights reserved.</p>

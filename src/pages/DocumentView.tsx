@@ -1,14 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftIcon,
-  ChatBubbleLeftRightIcon,
   ClockIcon,
   XMarkIcon,
-  PaperAirplaneIcon,
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
+import ChatPopout from '../components/ChatPopout'
 import { useDiarySession } from '../context/DiarySessionContext'
+import { useAuth } from '../auth/AuthContext'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Snapshot {
@@ -50,34 +50,18 @@ type Panel = 'history' | null
 export default function DocumentView() {
   const { id, pageId } = useParams()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
 
   const { openSession, wsStatus, chatMessages, sendChat } = useDiarySession()
+  const { user } = useAuth()
 
   const [activePanel, setActivePanel] = useState<Panel>(null)
-  const [chatOpen, setChatOpen]       = useState(searchParams.get('panel') === 'chat')
-  const [draft, setDraft]             = useState('')
   const [snapshot, setSnapshot]       = useState<Snapshot | null>(null)
-  const bottomRef                     = useRef<HTMLDivElement>(null)
 
   // Re-open (or reuse) the session for this diary — idempotent for same diaryId
   useEffect(() => {
     if (!id) return
     openSession(Number(id))
   }, [id])
-
-  // ── Auto-scroll chat ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (chatOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatOpen, chatMessages])
-
-  // ── Send chat ─────────────────────────────────────────────────────────────
-  const handleSend = useCallback(() => {
-    const text = draft.trim()
-    if (!text) return
-    sendChat(0, Number(pageId ?? 0), text)
-    setDraft('')
-  }, [draft, pageId, sendChat])
 
   return (
     <div className="h-screen bg-base-200 flex flex-col overflow-hidden">
@@ -166,89 +150,13 @@ export default function DocumentView() {
         )}
       </div>
 
-      {/* ── Chat tab (vertical pill on right edge) ── */}
-      <button
-        onClick={() => setChatOpen(o => !o)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1 py-4 px-2 bg-base-100 border border-r-0 border-base-300 rounded-l-2xl shadow-md hover:bg-base-200 transition-colors"
-        aria-label="Toggle chat"
-      >
-        <ChatBubbleLeftRightIcon className={`w-5 h-5 ${chatOpen ? 'text-primary' : 'text-base-content/50'}`} />
-        {chatMessages.length > 0 && (
-          <span className="badge badge-xs badge-secondary">{chatMessages.length}</span>
-        )}
-        <span className="text-[10px] font-semibold text-base-content/40 uppercase tracking-widest" style={{ writingMode: 'vertical-rl' }}>
-          Chat
-        </span>
-      </button>
-
-      {/* ── Chat drawer ── */}
-      <div
-        className={`fixed top-0 right-0 h-full z-20 flex flex-col bg-base-100 border-l border-base-300 shadow-2xl transition-transform duration-300 ease-in-out ${
-          chatOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        style={{ width: 320 }}
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-base-300 shrink-0 mt-14">
-          <div>
-            <p className="font-semibold text-sm">💬 Diary Chat</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              title={wsStatus}
-              className={`w-2 h-2 rounded-full ${
-                wsStatus === 'connected'  ? 'bg-success' :
-                wsStatus === 'connecting' ? 'bg-warning animate-pulse' :
-                wsStatus === 'error'      ? 'bg-error' : 'bg-base-300'
-              }`}
-            />
-            <button onClick={() => setChatOpen(false)} className="btn btn-ghost btn-xs btn-circle">
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
-          {chatMessages.length === 0 && (
-            <p className="text-xs text-base-content/30 text-center mt-4">No messages yet.</p>
-          )}
-          {chatMessages.map((msg, i) => (
-            <div key={i} className="flex flex-col gap-0.5 items-start">
-              <span className="text-[10px] text-base-content/40 px-1">
-                {msg.senderName ?? `User ${msg.senderId}`}
-              </span>
-              <div className="px-3 py-2 rounded-2xl text-sm max-w-[85%] bg-base-200 text-base-content rounded-bl-sm">
-                {msg.content}
-              </div>
-              <span className="text-[10px] text-base-content/30 px-1">{msg.timestamp}</span>
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-
-        <div className="px-3 py-3 border-t border-base-300 flex gap-2 items-end shrink-0">
-          <textarea
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-            placeholder={wsStatus === 'connected' ? 'Say something...' : 'Connecting…'}
-            rows={1}
-            disabled={wsStatus !== 'connected'}
-            className="textarea textarea-bordered textarea-sm flex-1 resize-none text-sm leading-snug"
-          />
-          <button
-            onClick={handleSend}
-            disabled={!draft.trim() || wsStatus !== 'connected'}
-            className="btn btn-primary btn-sm btn-circle flex-shrink-0"
-          >
-            <PaperAirplaneIcon className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile backdrop */}
-      {chatOpen && (
-        <div className="fixed inset-0 z-10 bg-black/20 sm:hidden" onClick={() => setChatOpen(false)} />
-      )}
+      {/* ── Floating chat popout ── */}
+      <ChatPopout
+        messages={chatMessages}
+        wsStatus={wsStatus}
+        currentUserId={user?.id}
+        onSend={(text) => sendChat(0, Number(pageId ?? 0), text)}
+      />
 
       {/* ── Snapshot preview modal ── */}
       {snapshot && (
