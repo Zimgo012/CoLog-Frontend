@@ -31,7 +31,7 @@ export async function getDocument(diaryId: number, documentId: number): Promise<
 
 // CREATE document
 export async function createDocument(body : object, diaryId : number): Promise<Document> {
-    const response = await apiFetch(`/document/${diaryId}`,{
+    const response = await apiFetch(`/document/${diaryId}/create`,{
         method : "POST",
         body : JSON.stringify(body),
     });

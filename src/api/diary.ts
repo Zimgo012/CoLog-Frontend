@@ -49,14 +49,24 @@ export async function addDiary(body: object) {
 }
 
 //edit diary
-// {
-//     "id": 1,
-//     "title": "diary1",
-//     "createdAt": "2026-09-01",
-//     "owner": null,
-//     "emoji": "",
-//     "color": ""
-// }
+export interface DiaryEditPayload {
+    title?: string
+    emoji?: string
+    color?: string
+}
+
+export async function editDiary(diaryId: number, body: DiaryEditPayload) {
+    const response = await apiFetch(`/diary/${diaryId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to edit diary: ${response.status}`);
+    }
+
+    return response.json();
+}
 
 
 //delete diary
@@ -64,7 +74,17 @@ export async function addDiary(body: object) {
 //      "id":id
 //      "title" : title
 //}
+export async function deleteDiary(diaryId : number) {
+    const response = await apiFetch(`/diary/${diaryId}`, {
+        method: "DELETE",
+    });
 
+    if (!response.ok) {
+        throw new Error(`Failed to create diary: ${response.status}`);
+    }
+
+    return response.json();
+}
 
 
 
