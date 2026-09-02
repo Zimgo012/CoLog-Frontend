@@ -1,60 +1,96 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { getToken, isTokenValid, logout as logoutUser } from "./auth";
+import type { LoginResponse } from "../api/login";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type UserProfile = Omit<LoginResponse, "token">;
 
 interface AuthContextType {
-    token:          string | null;
+    token:           string | null;
+    user:            UserProfile | null;
     isAuthenticated: boolean;
-    isExpired:      boolean;       // true when a previously valid token has since expired
-    login:          (newToken: string) => void;
-    logout:         () => void;
-    dismissExpired: () => void;    // clear the expired flag (e.g. after redirecting)
+    isExpired:       boolean;
+    login:           (response: LoginResponse) => void;
+    logout:          () => void;
+    updateUser:      (partial: Partial<UserProfile>) => void;
+    dismissExpired:  () => void;
 }
 
-interface AuthProviderProps {
-    children: ReactNode;
-}
+// ── Storage keys ──────────────────────────────────────────────────────────────
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const TOKEN_KEY   = "token";
+const PROFILE_KEY = "user_profile";
+
+function loadProfile(): UserProfile | null {
+    try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        return raw ? (JSON.parse(raw) as UserProfile) : null;
+    } catch {
+        return null;
+    }
+}
 
 // How often to poll token validity while the tab is open (ms)
 const CHECK_INTERVAL = 30_000;
 
-export function AuthProvider({ children }: AuthProviderProps) {
+// ── Context ───────────────────────────────────────────────────────────────────
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+
+export function AuthProvider({ children }: { children: ReactNode }) {
 
     const [token, setToken] = useState<string | null>(() => {
-        const storedToken = getToken();
-        if (!storedToken)       return null;
-        if (!isTokenValid())  { logoutUser(); return null; }
-        return storedToken;
+        const stored = getToken();
+        if (!stored)         return null;
+        if (!isTokenValid()) { logoutUser(); return null; }
+        return stored;
     });
+
+    const [user, setUser] = useState<UserProfile | null>(() => loadProfile());
 
     const [isExpired, setIsExpired] = useState(false);
 
-    // Periodic check — fires the expired banner when the token silently expires
+    // Periodic expiry check
     useEffect(() => {
         if (!token) return;
-
         const id = setInterval(() => {
             if (!isTokenValid()) {
-                logoutUser();       // remove from localStorage
+                logoutUser();
                 setToken(null);
                 setIsExpired(true);
             }
         }, CHECK_INTERVAL);
-
         return () => clearInterval(id);
     }, [token]);
 
-    const login = (newToken: string) => {
-        localStorage.setItem("token", newToken);
+    const login = (response: LoginResponse) => {
+        const { token: newToken, ...profile } = response;
+        localStorage.setItem(TOKEN_KEY,   newToken);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
         setToken(newToken);
+        setUser(profile);
         setIsExpired(false);
     };
 
     const logout = () => {
         logoutUser();
+        localStorage.removeItem(PROFILE_KEY);
         setToken(null);
+        setUser(null);
         setIsExpired(false);
+    };
+
+    // Merge partial updates into the stored profile (used after PATCH /user)
+    const updateUser = (partial: Partial<UserProfile>) => {
+        setUser(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, ...partial };
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(updated));
+            return updated;
+        });
     };
 
     const dismissExpired = () => setIsExpired(false);
@@ -64,16 +100,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return (
         <AuthContext.Provider value={{
             token,
+            user,
             isAuthenticated,
             isExpired,
             login,
             logout,
+            updateUser,
             dismissExpired,
         }}>
             {children}
         </AuthContext.Provider>
     );
 }
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useAuth(): AuthContextType {
     const context = useContext(AuthContext);
