@@ -9,11 +9,11 @@ export const presencePluginKey = new PluginKey<DecorationSet>('presence')
 
 function createCursorElement(user: { id: number; name: string; color: string }): HTMLElement {
   const el = document.createElement('span')
-  el.className            = 'remote-cursor'
+  el.className             = 'remote-cursor'
+  el.style.borderColor     = user.color || 'red'
   el.style.backgroundColor = user.color || 'red'
-  el.style.borderColor    = user.color || 'red'
-  el.dataset.userId       = String(user.id)
-  el.innerText            = user.name || 'User'
+  // data-label is used by ::after to show the floating name tag
+  el.dataset.label         = user.name || `User ${user.id}`
   return el
 }
 
