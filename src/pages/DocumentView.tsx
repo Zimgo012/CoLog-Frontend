@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import ChatPopout from '../components/ChatPopout'
+import CollabEditor from '../components/CollabEditor'
 import { useDiarySession } from '../context/DiarySessionContext'
 import { useAuth } from '../auth/AuthContext'
 
@@ -97,18 +98,27 @@ export default function DocumentView() {
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 py-8 max-w-3xl flex flex-col gap-6">
 
-            {/* ── YJS Editor area ── */}
-            <div className="bg-base-100 rounded-2xl shadow-sm border border-base-300">
-              <div className="px-4 py-2.5 border-b border-base-300">
-                <span className="text-xs font-semibold text-base-content/40 uppercase tracking-wide">✏️ Editor</span>
-              </div>
-              <div className="min-h-96 flex items-center justify-center text-base-content/20 select-none p-8">
-                <div className="text-center">
-                  <p className="text-3xl mb-2">✏️</p>
-                  <p className="text-sm font-medium">YJS collaborative editor</p>
-                  <p className="text-xs mt-1">Mount your editor here</p>
-                </div>
-              </div>
+            {/* ── Collaborative Editor ── */}
+            <div className="bg-base-100 rounded-2xl shadow-sm border border-base-300 overflow-hidden">
+              {(() => {
+                const diaryNum = Number(id)
+                const pageNum  = Number(pageId)
+                if (!user || !Number.isFinite(diaryNum) || !Number.isFinite(pageNum) || pageNum === 0) {
+                  return (
+                    <div className="min-h-96 flex items-center justify-center p-8">
+                      <span className="loading loading-spinner loading-md text-primary" />
+                    </div>
+                  )
+                }
+                return (
+                  <CollabEditor
+                    diaryId={diaryNum}
+                    documentId={pageNum}
+                    userId={user.id}
+                    userName={`${user.firstName} ${user.lastName}`.trim() || user.username}
+                  />
+                )
+              })()}
             </div>
 
           </div>

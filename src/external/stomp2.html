@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  ```
+  <meta charset="UTF-8">
+
+  <title>Diary STOMP Tester</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.1.1/bundles/stomp.umd.min.js"></script>
+
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      max-width: 1000px;
+    }
+
+    .section {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input,
+    textarea,
+    button {
+      margin: 5px 0;
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 350px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    button {
+      cursor: pointer;
+      margin-right: 5px;
+    }
+
+    #bearerToken {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: monospace;
+    }
+
+    #log {
+      background: #111;
+      color: #0f0;
+      padding: 15px;
+      width: 100%;
+      height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      box-sizing: border-box;
+      font-family: monospace;
+    }
+
+    .connected {
+      color: green;
+      font-weight: bold;
+    }
+
+    .disconnected {
+      color: red;
+      font-weight: bold;
+    }
+
+  </style>
+  ```
+
+</head>
+
+<body>
+
+<h1>Diary STOMP Tester</h1>
+
+<!-- ========================================================= -->
+
+<!-- AUTHENTICATION -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>1. Authentication</h2>
+
+  <p>
+    Login using Postman first.
+    Then paste the JWT below.
+  </p>
+
+  <label>
+    Bearer Token
+  </label>
+
+  <br>
+
+  <textarea
+          id="bearerToken"
+          placeholder="Paste JWT from Postman here..."
+  ></textarea>
+  ```
+
+</div>
+
+<!-- ========================================================= -->
+
+<!-- DIARY -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>2. Diary Connection</h2>
+
+  <label>
+    Diary ID
+  </label>
+
+  <br>
+
+  <input
+          id="diaryId"
+          type="number"
+          value="1"
+  >
+
+  <br><br>
+
+  <button onclick="connect()">
+    Connect to Diary
+  </button>
+
+  <button onclick="disconnect()">
+    Disconnect
+  </button>
+
+  <p>
+
+    Status:
+
+    <span
+            id="status"
+            class="disconnected"
+    >
+        Disconnected
+    </span>
+
+  </p>
+  ```
+
+</div>
+
+<!-- ========================================================= -->
+
+<!-- DOCUMENT -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>3. Document</h2>
+
+  <label>
+    Document ID
+  </label>
+
+  <br>
+
+  <input
+          id="documentId"
+          type="number"
+          value="1"
+  >
+
+  <br><br>
+
+  <button onclick="subscribePresence()">
+    Subscribe Presence
+  </button>
+
+  <button onclick="subscribeYjs()">
+    Subscribe YJS
+  </button>
+  ```
+
+</div>
+
+<!-- ========================================================= -->
+
+<!-- SESSION -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>4. Session</h2>
+
+  <button onclick="sendJoin()">
+    JOIN
+  </button>
+
+  <button onclick="sendLeave()">
+    LEAVE
+  </button>
+  ```
+
+</div>
+
+<!-- ========================================================= -->
+
+<!-- CHAT -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>5. Chat</h2>
+
+  <label>
+    Sender ID
+  </label>
+
+  <br>
+
+  <input
+          id="userId"
+          type="number"
+          value="1"
+  >
+
+  <br><br>
+
+  <label>
+    Message
+  </label>
+
+  <br>
+
+  <input
+          id="chatContent"
+          type="text"
+          value="Hello from STOMP tester!"
+          style="width: 500px;"
+  >
+
+  <br><br>
+
+  <button onclick="sendChat()">
+    Send Chat
+  </button>
+  ```
+
+</div>
+
+<!-- ========================================================= -->
+
+<!-- PRESENCE -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>6. Presence</h2>
+
+  <p>
+    Sends a PRESENCE message to the diary session.
+  </p>
+
+  <button onclick="sendPresence()">
+    Send Presence
+  </button>
+  ```
+
+</div>
+
+<!-- ========================================================= -->
+
+<!-- YJS -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>7. YJS Update</h2>
+
+  <p>
+    Enter byte values separated by commas.
+  </p>
+
+  <textarea
+          id="yjsBytes"
+  >1,2,3,4</textarea>
+
+  <br>
+
+  <button onclick="sendYjsUpdate()">
+    Send YJS Update
+  </button>
+  ```
+
+</div>
+
+<!-- ========================================================= -->
+
+<!-- LOG -->
+
+<!-- ========================================================= -->
+
+<div class="section">
+
+  ```
+  <h2>8. Log</h2>
+
+  <div id="log"></div>
+  ```
+
+</div>
+
+<script>
+
+
+  // ============================================================
+  // STATE
+  // ============================================================
+
+  let stompClient = null;
+
+  let chatSubscription = null;
+
+  let presenceSubscription = null;
+
+  let yjsSubscription = null;
+
+
+  // ============================================================
+  // LOG
+  // ============================================================
+
+  function log(
+          message,
+          data = null
+  ) {
+
+    const logElement =
+            document.getElementById(
+                    "log"
+            );
+
+
+    let output =
+            `[${new Date().toLocaleTimeString()}] ${message}`;
+
+
+    if (
+            data !== null
+    ) {
+
+      if (
+              typeof data === "string"
+      ) {
+
+        output +=
+                "\n" +
+                data;
+
+      } else {
+
+        output +=
+                "\n" +
+                JSON.stringify(
+                        data,
+                        null,
+                        2
+                );
+
+      }
+
+    }
+
+
+    console.log(
+            output
+    );
+
+
+    logElement.textContent +=
+            output +
+            "\n\n";
+
+
+    logElement.scrollTop =
+            logElement.scrollHeight;
+
+  }
+
+
+  // ============================================================
+  // GET TOKEN
+  // ============================================================
+
+  function getToken() {
+
+    return document
+            .getElementById(
+                    "bearerToken"
+            )
+            .value
+            .trim();
+
+  }
+
+
+  // ============================================================
+  // GET DIARY ID
+  // ============================================================
+
+  function getDiaryId() {
+
+    return Number(
+            document.getElementById(
+                    "diaryId"
+            ).value
+    );
+
+  }
+
+
+  // ============================================================
+  // GET DOCUMENT ID
+  // ============================================================
+
+  function getDocumentId() {
+
+    return Number(
+            document.getElementById(
+                    "documentId"
+            ).value
+    );
+
+  }
+
+
+  // ============================================================
+  // GET USER ID
+  // ============================================================
+
+  function getUserId() {
+
+    return Number(
+            document.getElementById(
+                    "userId"
+            ).value
+    );
+
+  }
+
+
+  // ============================================================
+  // CONNECT
+  // ============================================================
+
+  function connect() {
+
+    const token =
+            getToken();
+
+
+    if (
+            !token
+    ) {
+
+      log(
+              "ERROR: Paste your JWT first."
+      );
+
+      return;
+    }
+
+
+    const diaryId =
+            getDiaryId();
+
+
+    if (
+            !Number.isInteger(
+                    diaryId
+            ) ||
+            diaryId <= 0
+    ) {
+
+      log(
+              "ERROR: Invalid Diary ID."
+      );
+
+      return;
+    }
+
+
+    if (
+            stompClient?.active
+    ) {
+
+      log(
+              "STOMP client is already active."
+      );
+
+      return;
+    }
+
+
+    log(
+            "Creating STOMP client..."
+    );
+
+
+    stompClient =
+            new StompJs.Client({
+
+              brokerURL:
+                      "ws://localhost:8083/ws",
+
+
+              // =================================================
+              // STOMP CONNECT HEADERS
+              // =================================================
+
+              connectHeaders: {
+
+                Authorization:
+                        "Bearer " +
+                        token,
+
+                diaryId:
+                        String(
+                                diaryId
+                        )
+
+              },
+
+
+              reconnectDelay:
+                      5000,
+
+
+              debug:
+                      function (message) {
+
+                        console.log(
+                                "[STOMP]",
+                                message
+                        );
+
+                      },
+
+
+              // =================================================
+              // CONNECTED
+              // =================================================
+
+              onConnect:
+                      function (frame) {
+
+                        log(
+                                "CONNECTED!",
+                                {
+
+                                  diaryId:
+                                  diaryId,
+
+                                  frame:
+                                  frame
+
+                                }
+                        );
+
+
+                        setStatus(
+                                "Connected",
+                                true
+                        );
+
+
+                        /*
+                         * Automatically subscribe
+                         * to the diary chat.
+                         */
+
+                        subscribeChat();
+
+                      },
+
+
+              // =================================================
+              // STOMP ERROR
+              // =================================================
+
+              onStompError:
+                      function (frame) {
+
+                        log(
+                                "STOMP ERROR",
+                                {
+
+                                  headers:
+                                  frame.headers,
+
+                                  body:
+                                  frame.body
+
+                                }
+                        );
+
+
+                        setStatus(
+                                "STOMP Error",
+                                false
+                        );
+
+                      },
+
+
+              // =================================================
+              // WEBSOCKET ERROR
+              // =================================================
+
+              onWebSocketError:
+                      function (error) {
+
+                        log(
+                                "WEBSOCKET ERROR",
+                                error
+                        );
+
+
+                        setStatus(
+                                "WebSocket Error",
+                                false
+                        );
+
+                      },
+
+
+              // =================================================
+              // DISCONNECTED
+              // =================================================
+
+              onDisconnect:
+                      function () {
+
+                        log(
+                                "DISCONNECTED"
+                        );
+
+
+                        setStatus(
+                                "Disconnected",
+                                false
+                        );
+
+                      }
+
+            });
+
+
+    log(
+            "Connecting..."
+    );
+
+
+    log(
+            "Diary ID: " +
+            diaryId
+    );
+
+
+    /*
+     * IMPORTANT:
+     *
+     * The JWT is NOT sent as part
+     * of the URL.
+     *
+     * It is sent in the STOMP
+     * CONNECT headers:
+     *
+     * Authorization: Bearer <JWT>
+     *
+     * diaryId: <Diary ID>
+     */
+
+    stompClient.activate();
+
+  }
+
+
+  // ============================================================
+  // STATUS
+  // ============================================================
+
+  function setStatus(
+          text,
+          connected
+  ) {
+
+    const element =
+            document.getElementById(
+                    "status"
+            );
+
+
+    element.innerText =
+            text;
+
+
+    element.className =
+            connected
+                    ? "connected"
+                    : "disconnected";
+
+  }
+
+
+  // ============================================================
+  // DISCONNECT
+  // ============================================================
+
+  function disconnect() {
+
+    if (
+            !stompClient
+    ) {
+
+      return;
+    }
+
+
+    stompClient.deactivate();
+
+
+    log(
+            "Disconnect requested."
+    );
+
+  }
+
+
+  // ============================================================
+  // CHAT SUBSCRIPTION
+  // ============================================================
+
+  function subscribeChat() {
+
+    if (
+            !stompClient?.connected
+    ) {
+
+      log(
+              "ERROR: STOMP is not connected."
+      );
+
+      return;
+    }
+
+
+    const topic =
+            `/topic/diary/${getDiaryId()}/chat`;
+
+
+    if (
+            chatSubscription
+    ) {
+
+      chatSubscription.unsubscribe();
+
+    }
+
+
+    chatSubscription =
+            stompClient.subscribe(
+
+                    topic,
+
+                    function (message) {
+
+                      log(
+                              "CHAT RECEIVED",
+                              message.body
+                      );
+
+                    }
+
+            );
+
+
+    log(
+            "Subscribed to CHAT",
+            topic
+    );
+
+  }
+
+
+  // ============================================================
+  // PRESENCE SUBSCRIPTION
+  // ============================================================
+
+  function subscribePresence() {
+
+    if (
+            !stompClient?.connected
+    ) {
+
+      log(
+              "ERROR: STOMP is not connected."
+      );
+
+      return;
+    }
+
+
+    const topic =
+            `/topic/diary/${getDiaryId()}` +
+            `/documentId/${getDocumentId()}` +
+            `/presence`;
+
+
+    if (
+            presenceSubscription
+    ) {
+
+      presenceSubscription.unsubscribe();
+
+    }
+
+
+    presenceSubscription =
+            stompClient.subscribe(
+
+                    topic,
+
+                    function (message) {
+
+                      log(
+                              "PRESENCE RECEIVED",
+                              message.body
+                      );
+
+                    }
+
+            );
+
+
+    log(
+            "Subscribed to PRESENCE",
+            topic
+    );
+
+  }
+
+
+  // ============================================================
+  // YJS SUBSCRIPTION
+  // ============================================================
+
+  function subscribeYjs() {
+
+    if (
+            !stompClient?.connected
+    ) {
+
+      log(
+              "ERROR: STOMP is not connected."
+      );
+
+      return;
+    }
+
+
+    const topic =
+            `/topic/diary/${getDiaryId()}` +
+            `/documentId/${getDocumentId()}` +
+            `/yjs`;
+
+
+    if (
+            yjsSubscription
+    ) {
+
+      yjsSubscription.unsubscribe();
+
+    }
+
+
+    yjsSubscription =
+            stompClient.subscribe(
+
+                    topic,
+
+                    function (message) {
+
+                      log(
+                              "YJS RECEIVED",
+                              message.body
+                      );
+
+                    }
+
+            );
+
+
+    log(
+            "Subscribed to YJS",
+            topic
+    );
+
+  }
+
+
+  // ============================================================
+  // GENERIC SEND
+  // ============================================================
+
+  function sendRaw(
+          message
+  ) {
+
+    if (
+            !stompClient?.connected
+    ) {
+
+      log(
+              "ERROR: STOMP is not connected."
+      );
+
+      return;
+    }
+
+
+    const destination =
+            `/app/diary/session/${getDiaryId()}`;
+
+
+    log(
+            "SENDING",
+            {
+
+              destination:
+              destination,
+
+              message:
+              message
+
+            }
+    );
+
+
+    stompClient.publish({
+
+      destination:
+      destination,
+
+      body:
+              JSON.stringify(
+                      message
+              )
+
+    });
+
+  }
+
+
+  // ============================================================
+  // JOIN
+  // ============================================================
+
+  function sendJoin() {
+
+    sendRaw({
+
+      type:
+              "JOIN",
+
+      payload:
+              {}
+
+    });
+
+  }
+
+
+  // ============================================================
+  // LEAVE
+  // ============================================================
+
+  function sendLeave() {
+
+    sendRaw({
+
+      type:
+              "LEAVE",
+
+      payload:
+              {}
+
+    });
+
+  }
+
+
+  // ============================================================
+  // CHAT
+  // ============================================================
+
+  function sendChat() {
+
+    const content =
+            document.getElementById(
+                    "chatContent"
+            ).value.trim();
+
+
+    if (
+            !content
+    ) {
+
+      log(
+              "ERROR: Chat message is empty."
+      );
+
+      return;
+    }
+
+
+    sendRaw({
+
+      type:
+              "CHAT",
+
+      payload: {
+
+        senderId:
+                getUserId(),
+
+        content:
+        content
+
+      }
+
+    });
+
+  }
+
+
+  // ============================================================
+  // PRESENCE
+  // ============================================================
+
+  function sendPresence() {
+
+    sendRaw({
+
+      type:
+              "PRESENCE",
+
+      payload: {
+
+        senderId:
+                getUserId(),
+
+        documentId:
+                getDocumentId(),
+
+        awareness:
+                []
+
+      }
+
+    });
+
+  }
+
+
+  // ============================================================
+  // YJS UPDATE
+  // ============================================================
+
+  function sendYjsUpdate() {
+
+    const input =
+            document.getElementById(
+                    "yjsBytes"
+            ).value;
+
+
+    const bytes =
+            input
+                    .split(",")
+                    .map(
+                            value =>
+                                    Number(
+                                            value.trim()
+                                    )
+                    );
+
+
+    if (
+            bytes.some(
+                    value =>
+                            !Number.isInteger(
+                                    value
+                            ) ||
+                            value < 0 ||
+                            value > 255
+            )
+    ) {
+
+      log(
+              "ERROR: Invalid byte array."
+      );
+
+      return;
+    }
+
+
+    sendRaw({
+
+      type:
+              "YJSUPDATE",
+
+      payload: {
+
+        senderId:
+                getUserId(),
+
+        documentId:
+                getDocumentId(),
+
+        yjs:
+        bytes
+
+      }
+
+    });
+
+  }
+
+
+</script>
+
+</body>
+
+</html>

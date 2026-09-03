@@ -15,7 +15,14 @@ export async function getDocuments(diaryId: number): Promise<Document[]> {
         throw new Error("Failed to fetch documents");
     }
 
-    return response.json();
+    const data = await response.json();
+    // Normalise: backend may return 'id' instead of 'documentId'
+    return data.map((doc: any) => ({
+        documentId: doc.documentId ?? doc.id,
+        date:       doc.date,
+        yjsState:   doc.yjsState ?? null,
+        revisions:  doc.revisions ?? [],
+    }));
 }
 
 // GET /document/{diaryId}/{documentId}
@@ -39,7 +46,13 @@ export async function createDocument(body : object, diaryId : number): Promise<D
         throw new Error("Failed to create document");
     }
 
-    return response.json();
+    const doc: any = await response.json();
+    return {
+        documentId: doc.documentId ?? doc.id,
+        date:       doc.date,
+        yjsState:   doc.yjsState ?? null,
+        revisions:  doc.revisions ?? [],
+    };
 }
 
 
