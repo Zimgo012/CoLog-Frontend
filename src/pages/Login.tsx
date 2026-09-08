@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import { login as loginApi } from "../api/login";
 import { useAuth } from "../auth/AuthContext";
@@ -7,8 +7,10 @@ import { useAuth } from "../auth/AuthContext";
 export default function Login() {
 
     const navigate = useNavigate();
+    const location = useLocation();
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const registeredUsername = (location.state as { registeredUsername?: string } | null)?.registeredUsername;
 
     const {
         isAuthenticated,
@@ -66,6 +68,14 @@ export default function Login() {
             <div className="card w-full max-w-sm bg-base-100 shadow-xl">
                 <div className="card-body">
 
+                    <Link
+                        to="/"
+                        className="link link-primary"
+                        aria-label="Go to CoLog home"
+                    >
+                        Back to Homepage
+                    </Link>
+
                     <h2 className="text-2xl font-bold text-center text-primary mb-1">
                         Welcome back
                     </h2>
@@ -79,6 +89,12 @@ export default function Login() {
                         onSubmit={submit}
                     >
 
+                        {registeredUsername && (
+                            <div role="status" className="alert alert-success py-2.5 px-3.5 text-sm">
+                                <span>Email verified. You can log in now.</span>
+                            </div>
+                        )}
+
                         {error && (
                             <div role="alert" className="alert alert-error py-2.5 px-3.5 text-sm">
                                 <ExclamationCircleIcon className="w-5 h-5 shrink-0" />
@@ -89,7 +105,7 @@ export default function Login() {
                         <label className="form-control w-full">
                             <div className="label">
                                 <span className="label-text">
-                                    Email
+                                    Username
                                 </span>
                             </div>
 
@@ -98,6 +114,7 @@ export default function Login() {
                                 type="text"
                                 placeholder="jdoe223"
                                 className="input input-bordered w-full"
+                                defaultValue={registeredUsername}
                             />
                         </label>
 
