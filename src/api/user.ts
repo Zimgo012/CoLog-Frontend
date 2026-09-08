@@ -21,3 +21,17 @@ export async function updateUser(id: number, payload: UpdateUserPayload): Promis
 
     return response.json();
 }
+
+
+// Get if user exist
+export async function checkIfUsernameExists(username: string): Promise<boolean> {
+    const response = await apiFetch(`/user/check/${username}`, {
+        method: "GET"
+    })
+
+    if (!response.ok) {
+        throw new Error("Failed to check username exists");
+    }
+
+    return response.json();
+}

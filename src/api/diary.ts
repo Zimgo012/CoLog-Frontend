@@ -87,8 +87,21 @@ export async function deleteDiary(diaryId : number) {
 }
 
 
+// show collaborators
+export async function getAllCollborators(diaryId: number) {
+    const response = await apiFetch(`/diary/${diaryId}/collaborators/`, {
+        method: "GET",
+
+    })
+
+    if (!response.ok) {
+        throw new Error(`Failed to get diary: ${response.status}`);
+    }
+
+    return response.json();
+}
 
 // invite collaborator
 
-// show collaborators
+
 
