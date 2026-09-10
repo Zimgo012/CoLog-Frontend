@@ -32,11 +32,61 @@ export interface DiarySessionHandle {
     disconnect:    ()                                                       => void
 }
 
+export interface NotificationSessionHandle {
+    disconnect: () => void
+}
+
 // ── Internal ──────────────────────────────────────────────────────────────────
 
 /** All messages are published here*/
 function destination(diaryId: number) {
     return `/app/diary/session/${diaryId}`;
+}
+
+/** Opens the authenticated user-notification WebSocket used by DiaryList. */
+export function connectNotificationSession(
+    onNotification: (body: unknown) => void,
+): NotificationSessionHandle {
+    const token = localStorage.getItem("token") ?? "";
+    let notificationSub: StompSubscription | null = null;
+
+    const client = new Client({
+        brokerURL: `${WS_URL}/ws`,
+        connectHeaders: {
+            Authorization: `Bearer ${token}`,
+        },
+        reconnectDelay: 5000,
+        debug: (msg) => console.debug("[STOMP notification]", msg),
+
+        onConnect: () => {
+            console.log("[STOMP] connected — notifications");
+            notificationSub = client.subscribe("/user/queue/notification", (message) => {
+                try {
+                    const payload = JSON.parse(message.body);
+                    onNotification(payload);
+                } catch (err) {
+                    console.error("[STOMP] failed to parse notification", err);
+                }
+            });
+        },
+
+        onStompError: (frame) => {
+            console.error("[STOMP] notification error:", frame.headers, frame.body);
+        },
+
+        onWebSocketError: (err) => {
+            console.error("[STOMP] notification WebSocket error:", err);
+        },
+    });
+
+    client.activate();
+
+    return {
+        disconnect() {
+            try { notificationSub?.unsubscribe(); } catch { /* ignore */ }
+            client.deactivate();
+        },
+    };
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -97,6 +147,7 @@ export function connectDiarySession(
                 }
             );
             subscriptions.push(chatSub);
+
         },
 
         onDisconnect: () => {

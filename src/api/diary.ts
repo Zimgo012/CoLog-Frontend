@@ -1,5 +1,16 @@
 import { apiFetch } from "./client";
 
+async function responseBody(response: Response) {
+    const body = await response.text();
+    if (!body) return null;
+
+    try {
+        return JSON.parse(body);
+    } catch {
+        return body;
+    }
+}
+
 //get all diaries
 export async function getDiaries() {
     const response = await apiFetch("/diary/my");
@@ -88,7 +99,7 @@ export async function deleteDiary(diaryId : number) {
 
 
 // show collaborators
-export async function getAllCollborators(diaryId: number) {
+export async function getAllCollaborators(diaryId: number) {
     const response = await apiFetch(`/diary/${diaryId}/collaborators/`, {
         method: "GET",
 
@@ -101,7 +112,41 @@ export async function getAllCollborators(diaryId: number) {
     return response.json();
 }
 
-// invite collaborator
+// Kept for existing callers that use the original misspelled export.
+export const getAllCollborators = getAllCollaborators;
 
+// add collaborator /diary/{diaryId}/add/collaborator
+// body:
+//{
+//      String email - email of added collaborator
+//}
+export async function addCollaborator(diaryId: number, email: string) {
+    const response = await apiFetch(`/diary/${diaryId}/add/collaborator`, {
+        method: "POST",
+        body: JSON.stringify({ email }),
+    });
 
+    if (!response.ok) {
+        throw new Error(`Failed to add collaborator: ${response.status}`);
+    }
 
+    return responseBody(response);
+}
+
+// remove /diary/{diaryId}/remove/collaborator
+// body:
+//{
+//      String email - email of removed collaborator
+//}
+export async function removeCollaborator(diaryId: number, email: string) {
+    const response = await apiFetch(`/diary/${diaryId}/remove/collaborator`, {
+        method: "DELETE",
+        body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to remove collaborator: ${response.status}`);
+    }
+
+    return responseBody(response);
+}
