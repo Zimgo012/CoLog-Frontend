@@ -33,13 +33,14 @@ interface DiaryFormModalProps {
   mode:      "add" | "edit"
   initial?:  Partial<DiaryFormValues>
   saving?:   boolean
+  error?:    string | null
   onClose:   () => void
   onSubmit:  (values: DiaryFormValues) => void
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function DiaryFormModal({
-  open, mode, initial, saving = false, onClose, onSubmit,
+  open, mode, initial, saving = false, error, onClose, onSubmit,
 }: DiaryFormModalProps) {
 
   const [title, setTitle] = useState("")
@@ -96,6 +97,8 @@ export default function DiaryFormModal({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 pb-6 pt-2">
+
+          {error && <div role="alert" className="alert alert-error py-2.5 px-3 text-sm">{error}</div>}
 
           {/* Preview strip — hex + alpha via inline style */}
           <div

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { UserPlusIcon, TrashIcon, UsersIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { addCollaborator, getAllCollaborators, removeCollaborator } from "../api/diary"
+import { errorMessage } from "../api/client"
 
 interface Collaborator {
   id?: number
@@ -48,8 +49,8 @@ export default function CollaboratorModal({ open, diaryId, canRemove, onClose }:
     try {
       const result = await getAllCollaborators(diaryId)
       setCollaborators(Array.isArray(result) ? result.map(normaliseCollaborator) : [])
-    } catch {
-      setError("Failed to load collaborators.")
+    } catch (err) {
+      setError(errorMessage(err, "Unable to load collaborators. Please try again."))
     } finally {
       setLoading(false)
     }
@@ -72,8 +73,8 @@ export default function CollaboratorModal({ open, diaryId, canRemove, onClose }:
       await addCollaborator(diaryId, trimmedEmail)
       setEmail("")
       await loadCollaborators()
-    } catch {
-      setError("Failed to add collaborator. Check the email and try again.")
+    } catch (err) {
+      setError(errorMessage(err, "Unable to add this collaborator. Please try again."))
     } finally {
       setAdding(false)
     }
@@ -90,8 +91,8 @@ export default function CollaboratorModal({ open, diaryId, canRemove, onClose }:
         email: collaboratorEmail,
       })
       setCollaborators(prev => prev.filter(collaborator => collaborator.email !== collaboratorEmail))
-    } catch {
-      setError("Failed to remove collaborator. Please try again.")
+    } catch (err) {
+      setError(errorMessage(err, "Unable to remove this collaborator. Please try again."))
     } finally {
       setRemovingEmail(null)
     }
@@ -139,7 +140,7 @@ export default function CollaboratorModal({ open, diaryId, canRemove, onClose }:
           </button>
         </form>
 
-        {error && <div className="alert alert-error py-2 px-3 text-sm">{error}</div>}
+        {error && <div role="alert" className="alert alert-error py-2 px-3 text-sm">{error}</div>}
 
         <div className="max-h-64 overflow-y-auto">
           {loading ? (

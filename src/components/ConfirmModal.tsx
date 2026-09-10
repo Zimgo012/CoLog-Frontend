@@ -6,12 +6,13 @@ interface ConfirmModalProps {
   description: string
   confirmLabel?: string
   loading?:    boolean
+  error?:      string | null
   onClose:     () => void
   onConfirm:   () => void
 }
 
 export default function ConfirmModal({
-  open, title, description, confirmLabel = "Delete", loading = false, onClose, onConfirm,
+  open, title, description, confirmLabel = "Delete", loading = false, error, onClose, onConfirm,
 }: ConfirmModalProps) {
   if (!open) return null
 
@@ -37,6 +38,8 @@ export default function ConfirmModal({
         </div>
 
         <p className="text-sm text-base-content/60">{description}</p>
+
+        {error && <div role="alert" className="alert alert-error py-2.5 px-3 text-sm">{error}</div>}
 
         <div className="flex gap-2 justify-end">
           <button onClick={onClose} className="btn btn-ghost btn-sm" disabled={loading}>

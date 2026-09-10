@@ -2,6 +2,7 @@ import { useState } from "react"
 import { XMarkIcon, PencilIcon, CheckIcon } from "@heroicons/react/24/outline"
 import { useAuth } from "../auth/AuthContext"
 import { updateUser } from "../api/user"
+import { errorMessage } from "../api/client"
 
 interface ProfileModalProps {
     open:    boolean
@@ -55,8 +56,8 @@ export default function ProfileModal({ open, onClose }: ProfileModalProps) {
             const updated = await updateUser(user!.id, payload);
             saveUser(updated)
             setEditing(false)
-        } catch {
-            setError("Failed to update profile. Please try again.")
+        } catch (err) {
+            setError(errorMessage(err, "Unable to update your profile. Please try again."))
         } finally {
             setSaving(false)
         }
@@ -96,7 +97,7 @@ export default function ProfileModal({ open, onClose }: ProfileModalProps) {
 
                 {/* Error */}
                 {error && (
-                    <div className="alert alert-error py-2 px-3 text-sm">{error}</div>
+                    <div role="alert" className="alert alert-error py-2 px-3 text-sm">{error}</div>
                 )}
 
                 {/* View mode */}

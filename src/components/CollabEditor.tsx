@@ -110,7 +110,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName }: 
           await fetch(`${API_URL}/document/${diaryId}/${documentId}/yjs`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${token}` },
-            body:    state,
+            body:    state.buffer as ArrayBuffer,
           })
         } catch (e) { console.error('[CollabEditor] save error', e) }
       }, 2000)
@@ -437,4 +437,3 @@ export default function CollabEditor({ diaryId, documentId, userId, userName }: 
     </div>
   )
 }
-
