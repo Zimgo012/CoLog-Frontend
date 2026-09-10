@@ -196,7 +196,9 @@ export default function DiaryCard({
 
         <div className="card-actions mt-2">
           <button
-            onClick={() => navigate(`/diary/${diary.id}/pages`)}
+            onClick={() => navigate(`/diary/${diary.id}/pages`, {
+              state: { isOwner: !isCollaborated },
+            })}
 className="btn btn-xs btn-ghost w-full border border-base-300 hover:btn-primary transition-all"
     >
     Open Diary
