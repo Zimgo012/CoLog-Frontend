@@ -250,7 +250,7 @@ export default class YjsStompProvider {
       const res = await fetch(`${API_URL}/document/${this.diaryId}/${this.documentId}/yjs`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${token}` },
-        body:    state,
+        body:    state.buffer as ArrayBuffer,
       })
       if (!res.ok) throw new Error(`Save failed: ${res.status}`)
     } catch (err) {

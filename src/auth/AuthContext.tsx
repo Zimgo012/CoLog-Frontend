@@ -66,6 +66,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => clearInterval(id);
     }, [token]);
 
+    // The server is authoritative too: a token can be revoked before its JWT expiry.
+    useEffect(() => {
+        const handleAuthenticationError = () => {
+            logoutUser();
+            localStorage.removeItem(PROFILE_KEY);
+            setToken(null);
+            setUser(null);
+            setIsExpired(true);
+        };
+        window.addEventListener("colog:authentication-error", handleAuthenticationError);
+        return () => window.removeEventListener("colog:authentication-error", handleAuthenticationError);
+    }, []);
+
     const login = (response: LoginResponse) => {
         const { token: newToken, ...profile } = response;
         localStorage.setItem(TOKEN_KEY,   newToken);

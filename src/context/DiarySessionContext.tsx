@@ -25,6 +25,8 @@ interface DiarySessionContextValue {
     loadHistory:    (diaryId: number) => Promise<void>
     /** Current STOMP connection status. */
     wsStatus:       StompStatus
+    /** Most recent STOMP broker/connection error for the active diary. */
+    wsError:        string | null
     /** Accumulated chat messages for the active diary. */
     chatMessages:   ChatMessage[]
     /** Send a chat message. */
@@ -46,6 +48,7 @@ export function DiarySessionProvider({ children }: { children: ReactNode }) {
     const activeDiaryId = useRef<number | null>(null)
 
     const [wsStatus, setWsStatus]       = useState<StompStatus>('disconnected')
+    const [wsError, setWsError]         = useState<string | null>(null)
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
 
     const openSession = useCallback((diaryId: number) => {
@@ -59,8 +62,9 @@ export function DiarySessionProvider({ children }: { children: ReactNode }) {
         activeDiaryId.current = diaryId
         setChatMessages([])
         setWsStatus('connecting')
+        setWsError(null)
 
-        const session = connectDiarySession(diaryId, setWsStatus)
+        const session = connectDiarySession(diaryId, setWsStatus, setWsError)
         sessionRef.current = session
 
         unsubChatRef.current = session.onChat(msg => {
@@ -93,6 +97,7 @@ export function DiarySessionProvider({ children }: { children: ReactNode }) {
         activeDiaryId.current = null
         setChatMessages([])
         setWsStatus('disconnected')
+        setWsError(null)
     }, [])
 
     const sendChat = useCallback((senderId: number, documentId: number, content: string) => {
@@ -105,6 +110,7 @@ export function DiarySessionProvider({ children }: { children: ReactNode }) {
             closeSession,
             loadHistory,
             wsStatus,
+            wsError,
             chatMessages,
             sendChat,
             session: sessionRef.current,
