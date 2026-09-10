@@ -7,6 +7,7 @@ import ConfirmModal from "../components/ConfirmModal"
 import { getDiaries, getCollaboratedDiaries, addDiary, editDiary, deleteDiary } from "../api/diary"
 import { useDiarySession } from "../context/DiarySessionContext"
 import { useNotifications } from "../context/NotificationContext"
+import { errorMessage } from "../api/client"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,8 @@ export default function DiaryList() {
   const [myDiaries, setMyDiaries]               = useState<NormalisedDiary[]>([])
   const [collaboratedDiaries, setCollaborated]  = useState<NormalisedDiary[]>([])
   const [loadError, setLoadError]               = useState<string | null>(null)
+  const [formError, setFormError]               = useState<string | null>(null)
+  const [deleteError, setDeleteError]           = useState<string | null>(null)
 
   // ── Form modal state ──────────────────────────────────────────────────────
   const [formOpen, setFormOpen]   = useState(false)
@@ -85,8 +88,8 @@ export default function DiaryList() {
       console.debug("[DiaryList] getDiaries response:", my)
       setMyDiaries(my.map(normalise))
       setCollaborated(collaborated.map(normalise))
-    } catch {
-      setLoadError("Failed to load diaries.")
+    } catch (err) {
+      setLoadError(errorMessage(err, "Unable to load diaries. Please try again."))
     }
   }
 
@@ -107,6 +110,7 @@ export default function DiaryList() {
   function openAdd() {
     setFormTarget(null)
     setFormMode("add")
+    setFormError(null)
     setFormOpen(true)
   }
 
@@ -116,7 +120,8 @@ export default function DiaryList() {
       await addDiary({ title: values.title, emoji: values.emoji, color: values.color })
       await fetchAll()
       setFormOpen(false)
-    } catch {
+    } catch (err) {
+      setFormError(errorMessage(err, "Unable to create this diary. Please try again."))
     } finally {
       setFormSaving(false)
     }
@@ -126,6 +131,7 @@ export default function DiaryList() {
   function openEdit(diary: NormalisedDiary) {
     setFormTarget(diary)
     setFormMode("edit")
+    setFormError(null)
     setFormOpen(true)
   }
 
@@ -139,6 +145,7 @@ export default function DiaryList() {
       setFormOpen(false)
     } catch (err) {
       console.error("[DiaryList] editDiary error:", err)
+      setFormError(errorMessage(err, "Unable to update this diary. Please try again."))
     } finally {
       setFormSaving(false)
     }
@@ -148,12 +155,13 @@ export default function DiaryList() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
+    setDeleteError(null)
     try {
       await deleteDiary(Number(deleteTarget.id))
       setMyDiaries(prev => prev.filter(d => d.id !== deleteTarget.id))
       setDeleteTarget(null)
-    } catch {
-      // keep confirm open on error
+    } catch (err) {
+      setDeleteError(errorMessage(err, "Unable to delete this diary. Please try again."))
     } finally {
       setDeleting(false)
     }
@@ -174,7 +182,7 @@ export default function DiaryList() {
         </div>
 
         {loadError && (
-          <div className="alert alert-error mb-6 text-sm">{loadError}</div>
+          <div role="alert" className="alert alert-error mb-6 text-sm">{loadError}</div>
         )}
 
         {/* My Diaries */}
@@ -208,7 +216,7 @@ export default function DiaryList() {
                   key={diary.id}
                   diary={diary}
                   onEdit={openEdit}
-                  onDelete={setDeleteTarget}
+                  onDelete={diary => { setDeleteError(null); setDeleteTarget(diary) }}
                 />
               ))}
             </div>
@@ -251,6 +259,7 @@ export default function DiaryList() {
         mode={formMode}
         initial={formTarget ?? undefined}
         saving={formSaving}
+        error={formError}
         onClose={() => setFormOpen(false)}
         onSubmit={formMode === "add" ? handleAdd : handleEdit}
       />
@@ -262,6 +271,7 @@ export default function DiaryList() {
         description={`Are you sure you want to delete "${deleteTarget?.title}"? This cannot be undone.`}
         confirmLabel="Delete"
         loading={deleting}
+        error={deleteError}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />

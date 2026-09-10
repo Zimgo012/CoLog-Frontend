@@ -52,7 +52,7 @@ export default function DocumentView() {
   const { id, pageId } = useParams()
   const navigate = useNavigate()
 
-  const { openSession, wsStatus, chatMessages, sendChat } = useDiarySession()
+  const { openSession, wsStatus, wsError, chatMessages, sendChat } = useDiarySession()
   const { user } = useAuth()
 
   const [activePanel, setActivePanel] = useState<Panel>(null)
@@ -97,6 +97,8 @@ export default function DocumentView() {
         {/* ── Main content ── */}
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 py-8 max-w-3xl flex flex-col gap-6">
+
+            {wsError && <div role="alert" className="alert alert-warning text-sm">{wsError}</div>}
 
             {/* ── Collaborative Editor ── */}
             <div className="bg-base-100 rounded-2xl shadow-sm border border-base-300 overflow-hidden">

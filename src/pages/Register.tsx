@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { register, verify, type RegisterPayload } from "../api/register";
 import { useAuth } from "../auth/AuthContext";
 import { checkIfUsernameExists } from "../api/user";
+import { errorMessage } from "../api/client";
 
 type Step = "details" | "verify";
 const initialForm: RegisterPayload = { firstName: "", lastName: "", username: "", email: "", password: "" };
@@ -36,9 +37,9 @@ export default function Register() {
             setUsernameExists(exists);
             if (exists) setError("That username already exists. Please choose another one.");
             return !exists;
-        } catch {
+        } catch (err) {
             setUsernameExists(null);
-            setError("We couldn't check that username. Please try again.");
+            setError(errorMessage(err, "We couldn't check that username. Please try again."));
             return false;
         } finally {
             setUsernameChecking(false);
@@ -56,8 +57,8 @@ export default function Register() {
         try {
             const result = await register(form);
             setForm(current => ({ ...current, email: result.email || current.email }));
-            setStep("verify"); setNotice("We sent a verification code to your email address.");
-        } catch (err) { setError(err instanceof Error ? err.message : "Unable to create your account. Please try again."); }
+            setStep("verify"); setNotice("We sent a verification code to your email address. ");
+        } catch (err) { setError(errorMessage(err, "Unable to create your account. Please try again.")); }
         finally { setLoading(false); }
     }
 
@@ -66,14 +67,14 @@ export default function Register() {
         if (!code.trim()) return setError("Enter the verification code from your email.");
         setLoading(true);
         try { await verify(form.email, code.trim()); navigate("/login", { replace: true, state: { registeredUsername: form.username } }); }
-        catch (err) { setError(err instanceof Error ? err.message : "Unable to verify that code. Please try again."); }
+        catch (err) { setError(errorMessage(err, "Unable to verify that code. Please try again.")); }
         finally { setLoading(false); }
     }
 
     async function resendCode() {
         setError(null); setNotice(null); setLoading(true);
         try { await register(form); setNotice("A new verification code has been sent."); }
-        catch (err) { setError(err instanceof Error ? err.message : "Unable to resend the verification code."); }
+        catch (err) { setError(errorMessage(err, "Unable to resend the verification code.")); }
         finally { setLoading(false); }
     }
 
@@ -103,7 +104,7 @@ export default function Register() {
         </> : <>
             <CheckCircleIcon className="mx-auto h-12 w-12 text-success" />
             <h1 className="mb-1 text-center text-2xl font-bold text-primary">Check your email</h1>
-            <p className="mb-4 text-center text-sm text-base-content/60">Enter the code we sent to <span className="font-medium text-base-content">{form.email}</span>.</p>
+            <p className="mb-4 text-center text-sm text-base-content/60">Enter the code we sent to <span className="font-medium text-base-content">{form.email}.</span> Check your spam folder too.</p>
             <form className="flex flex-col gap-4" onSubmit={submitVerification}>
                 {error && <Alert message={error} />}{notice && <div role="status" className="alert alert-success py-2.5 px-3.5 text-sm"><span>{notice}</span></div>}
                 <label className="form-control w-full"><div className="label"><span className="label-text">Verification code</span></div><input autoFocus inputMode="numeric" autoComplete="one-time-code" value={code} onChange={event => setCode(event.target.value)} placeholder="Enter your code" className="input input-bordered w-full text-center tracking-[0.25em]" /></label>

@@ -13,6 +13,7 @@ import { getDiary } from '../api/diary'
 import { getDocuments, createDocument, type Document } from '../api/document'
 import { useDiarySession } from '../context/DiarySessionContext'
 import { useAuth } from '../auth/AuthContext'
+import { errorMessage } from '../api/client'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(d: string) {
@@ -56,7 +57,7 @@ export default function DiaryPages() {
   const location = useLocation()
   const isOwnerFromList = (location.state as { isOwner?: boolean } | null)?.isOwner === true
 
-  const { openSession, wsStatus, chatMessages, sendChat, loadHistory } = useDiarySession()
+  const { openSession, wsStatus, wsError, chatMessages, sendChat, loadHistory } = useDiarySession()
   const { user } = useAuth()
 
   const [diaryTitle, setDiaryTitle] = useState('')
@@ -95,7 +96,7 @@ export default function DiaryPages() {
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         ))
       })
-      .catch(() => setError('Failed to load diary.'))
+      .catch(err => setError(errorMessage(err, 'Unable to load this diary. Please try again.')))
       .finally(() => setLoading(false))
   }, [id, user, isOwnerFromList])
 
@@ -104,11 +105,13 @@ export default function DiaryPages() {
     if (!id || addingPage) return
     setAddingPage(true)
     try {
-      const newDoc = await createDocument({}, Number(id))
+      // The create-document DTO requires a date.
+      const date = new Date().toISOString().slice(0, -1)
+      const newDoc = await createDocument({ date }, Number(id))
       setDocuments(prev => [newDoc, ...prev])
       navigate(`/diary/${id}/pages/${newDoc.documentId}`)
-    } catch {
-      // could add a toast here later
+    } catch (err) {
+      setError(errorMessage(err, 'Unable to create a new page. Please try again.'))
     } finally {
       setAddingPage(false)
     }
@@ -159,6 +162,8 @@ export default function DiaryPages() {
       {/* Body */}
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 py-10 max-w-3xl">
+
+            {wsError && <div role="alert" className="alert alert-warning mb-6 text-sm">{wsError}</div>}
 
             {/* Diary header */}
             <div className="flex items-center justify-between mb-8">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import { login as loginApi } from "../api/login";
+import { errorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Login() {
@@ -56,7 +57,7 @@ export default function Login() {
         } catch (err) {
 
             console.error(err);
-            setError("Invalid username or password. Please try again.");
+            setError(errorMessage(err, "Unable to log in. Please try again."));
 
         } finally {
             setLoading(false);
