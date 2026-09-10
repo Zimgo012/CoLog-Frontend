@@ -6,6 +6,7 @@ import DiaryFormModal, { type DiaryFormValues } from "../components/DiaryFormMod
 import ConfirmModal from "../components/ConfirmModal"
 import { getDiaries, getCollaboratedDiaries, addDiary, editDiary, deleteDiary } from "../api/diary"
 import { useDiarySession } from "../context/DiarySessionContext"
+import { useNotifications } from "../context/NotificationContext"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ interface NormalisedDiary{
 
 export default function DiaryList() {
   const { closeSession } = useDiarySession()
+  const { lastNotification } = useNotifications()
 
   const [myDiaries, setMyDiaries]               = useState<NormalisedDiary[]>([])
   const [collaboratedDiaries, setCollaborated]  = useState<NormalisedDiary[]>([])
@@ -70,8 +72,8 @@ export default function DiaryList() {
   const [deleteTarget, setDeleteTarget] = useState<NormalisedDiary | null>(null)
   const [deleting, setDeleting]         = useState(false)
 
-  // ── Disconnect on arrival ─────────────────────────────────────────────────
-  useEffect(() => { closeSession() }, [])
+  // ── Disconnect an open diary session on arrival ───────────────────────────
+  useEffect(() => { closeSession() }, [closeSession])
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   async function fetchAll() {
@@ -89,6 +91,17 @@ export default function DiaryList() {
   }
 
   useEffect(() => { fetchAll() }, [])
+
+  // ── Keep shared diaries in sync with collaborator notifications ───────────
+  useEffect(() => {
+    if (!lastNotification) return
+
+    if (lastNotification.isRemoval && lastNotification.diaryId) {
+      setCollaborated(prev => prev.filter(diary => diary.id !== String(lastNotification.diaryId)))
+    }
+
+    void fetchAll()
+  }, [lastNotification?.id])
 
   // ── Add ───────────────────────────────────────────────────────────────────
   function openAdd() {

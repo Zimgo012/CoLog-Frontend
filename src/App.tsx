@@ -11,13 +11,15 @@ import NotFound from './pages/NotFound'
 import { AuthProvider } from "./auth/AuthContext.tsx";
 import ProtectedRoute from "./auth/ProtectedRoute.tsx";
 import SessionExpiredModal from "./components/SessionExpiredModal.tsx";
+import { NotificationProvider } from "./context/NotificationContext.tsx";
 
 function App() {
   return (
     <AuthProvider>
-      <DiarySessionProvider>
-        <SessionExpiredModal />
-        <Routes>
+      <NotificationProvider>
+        <DiarySessionProvider>
+          <SessionExpiredModal />
+          <Routes>
           {/* Home — hero, no navbar */}
           <Route path="/" element={<HomeLayout />}>
             <Route index element={<Home />} />
@@ -35,8 +37,9 @@ function App() {
           </Route>
 
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </DiarySessionProvider>
+          </Routes>
+        </DiarySessionProvider>
+      </NotificationProvider>
     </AuthProvider>
   )
 }

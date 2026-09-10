@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeftIcon,
   PlusIcon,
   DocumentTextIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import ChatPopout from '../components/ChatPopout'
+import CollaboratorModal from '../components/CollaboratorModal'
 import { getDiary } from '../api/diary'
 import { getDocuments, createDocument, type Document } from '../api/document'
 import { useDiarySession } from '../context/DiarySessionContext'
@@ -37,10 +39,22 @@ function normaliseDiary(diary: any) {
   return { title: diary.title ?? "", emoji }
 }
 
+function isDiaryOwner(diary: any, user: { id: number; username: string } | null) {
+  if (!user) return false
+
+  const ownerId = diary.ownerId ?? diary.owner?.id ?? diary.owner?.userId
+  if (ownerId !== undefined && ownerId !== null) return Number(ownerId) === user.id
+
+  const ownerUsername = diary.ownerUsername ?? diary.diaryOwnerName ?? diary.owner?.username ?? diary.owner
+  return typeof ownerUsername === 'string' && ownerUsername === user.username
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function DiaryPages() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const isOwnerFromList = (location.state as { isOwner?: boolean } | null)?.isOwner === true
 
   const { openSession, wsStatus, chatMessages, sendChat, loadHistory } = useDiarySession()
   const { user } = useAuth()
@@ -52,6 +66,8 @@ export default function DiaryPages() {
   const [error, setError]           = useState<string | null>(null)
 
   const [addingPage, setAddingPage] = useState(false)
+  const [collaboratorsOpen, setCollaboratorsOpen] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
 
   // ── Open session on mount ────────────────────────────────────────────────
   // Do NOT close on unmount here — DocumentView keeps the same session alive.
@@ -67,19 +83,21 @@ export default function DiaryPages() {
     const numId = Number(id)
     setLoading(true)
     setError(null)
+    setIsOwner(false)
 
     Promise.all([getDiary(numId), getDocuments(numId), loadHistory(numId)])
       .then(([diary, docs]) => {
         const { title, emoji } = normaliseDiary(diary)
         setDiaryTitle(title)
         setDiaryEmoji(emoji)
+        setIsOwner(isOwnerFromList || isDiaryOwner(diary, user))
         setDocuments([...docs].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         ))
       })
       .catch(() => setError('Failed to load diary.'))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, user, isOwnerFromList])
 
   // ── Add page ──────────────────────────────────────────────────────────────
   const handleNewPage = useCallback(async () => {
@@ -153,17 +171,26 @@ export default function DiaryPages() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleNewPage}
-                disabled={addingPage}
-                className="btn btn-primary btn-sm gap-1"
-              >
-                {addingPage
-                  ? <span className="loading loading-spinner loading-xs" />
-                  : <PlusIcon className="w-4 h-4" />
-                }
-                New Page
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCollaboratorsOpen(true)}
+                  className="btn btn-ghost btn-sm gap-1"
+                >
+                  <UsersIcon className="w-4 h-4" />
+                  Collaborators
+                </button>
+                <button
+                  onClick={handleNewPage}
+                  disabled={addingPage}
+                  className="btn btn-primary btn-sm gap-1"
+                >
+                  {addingPage
+                    ? <span className="loading loading-spinner loading-xs" />
+                    : <PlusIcon className="w-4 h-4" />
+                  }
+                  New Page
+                </button>
+              </div>
             </div>
 
             {/* Document list */}
@@ -205,6 +232,13 @@ export default function DiaryPages() {
         wsStatus={wsStatus}
         currentUserId={user?.id}
         onSend={(text) => sendChat(0, 0, text)}
+      />
+
+      <CollaboratorModal
+        open={collaboratorsOpen}
+        diaryId={Number(id)}
+        canRemove={isOwner}
+        onClose={() => setCollaboratorsOpen(false)}
       />
 
       <footer className="footer footer-center p-4 bg-base-100 text-base-content/40 text-xs border-t border-base-300">
