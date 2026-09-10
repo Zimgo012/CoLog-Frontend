@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, toApiError } from "./client";
 import type { UserProfile } from "../auth/AuthContext";
 
 export interface UpdateUserPayload {
@@ -16,7 +16,7 @@ export async function updateUser(id: number, payload: UpdateUserPayload): Promis
     });
 
     if (!response.ok) {
-        throw new Error("Failed to update profile");
+        throw await toApiError(response, "Unable to update your profile. Please try again.");
     }
 
     return response.json();
@@ -30,7 +30,7 @@ export async function checkIfUsernameExists(username: string): Promise<boolean> 
     })
 
     if (!response.ok) {
-        throw new Error("Failed to check username exists");
+        throw await toApiError(response, "Unable to check that username. Please try again.");
     }
 
     return response.json();

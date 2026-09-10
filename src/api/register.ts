@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, toApiError } from "./client";
 
 // Register user      /auth/register
 
@@ -46,27 +46,16 @@ export interface VerifyResponse {
     email: string;
 }
 
-async function responseMessage(response: Response, fallback: string): Promise<string> {
-    try {
-        const body: unknown = await response.json();
-        if (typeof body === "string" && body.trim()) return body;
-        if (body && typeof body === "object" && "message" in body && typeof body.message === "string") return body.message;
-    } catch {
-        // Error bodies are optional.
-    }
-    return fallback;
-}
-
 /** Starts registration and sends a verification code to the supplied email. */
 export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
     const response = await apiFetch("/auth/register", { method: "POST", body: JSON.stringify(payload) });
-    if (!response.ok) throw new Error(await responseMessage(response, "Unable to create your account. Please try again."));
+    if (!response.ok) throw await toApiError(response, "Unable to create your account. Please try again.");
     return response.json();
 }
 
 /** Confirms the emailed registration code. */
 export async function verify(email: string, code: string): Promise<VerifyResponse> {
     const response = await apiFetch("/auth/verify", { method: "POST", body: JSON.stringify({ email, code }) });
-    if (!response.ok) throw new Error(await responseMessage(response, "That verification code is invalid or has expired."));
+    if (!response.ok) throw await toApiError(response, "Unable to verify that code. Please try again.");
     return response.json();
 }

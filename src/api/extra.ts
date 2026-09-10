@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, toApiError } from "./client";
 
 //fetch chat history
 export async function getChatHistory(diaryId: number) {
@@ -7,7 +7,7 @@ export async function getChatHistory(diaryId: number) {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to create diary: ${response.status}`);
+        throw await toApiError(response, "Unable to load chat history. Please try again.");
     }
 
     return response.json();

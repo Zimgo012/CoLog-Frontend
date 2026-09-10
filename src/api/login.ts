@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, toApiError } from "./client";
 
 export interface LoginResponse {
     id:        number
@@ -17,7 +17,7 @@ export async function login(username: string, password: string): Promise<LoginRe
     });
 
     if (!response.ok) {
-        throw new Error("Login failed");
+        throw await toApiError(response, "Unable to log in. Please try again.");
     }
 
     return response.json();

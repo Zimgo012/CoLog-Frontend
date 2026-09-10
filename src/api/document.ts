@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, toApiError } from "./client";
 
 export interface Document {
     documentId: number
@@ -7,12 +7,17 @@ export interface Document {
     revisions: any[]
 }
 
+export interface CreateDocumentPayload {
+    /** ISO-8601 local date-time required by the document request DTO. */
+    date: string
+}
+
 // GET /document/{diaryId}/all
 export async function getDocuments(diaryId: number): Promise<Document[]> {
     const response = await apiFetch(`/document/${diaryId}/all`);
 
     if (!response.ok) {
-        throw new Error("Failed to fetch documents");
+        throw await toApiError(response, "Unable to load diary pages. Please try again.");
     }
 
     const data = await response.json();
@@ -30,20 +35,20 @@ export async function getDocument(diaryId: number, documentId: number): Promise<
     const response = await apiFetch(`/document/${diaryId}/${documentId}`);
 
     if (!response.ok) {
-        throw new Error("Failed to fetch document");
+        throw await toApiError(response, "Unable to load this document. Please try again.");
     }
 
     return response.json();
 }
 
 // CREATE document
-export async function createDocument(body : object, diaryId : number): Promise<Document> {
+export async function createDocument(body: CreateDocumentPayload, diaryId: number): Promise<Document> {
     const response = await apiFetch(`/document/${diaryId}/create`,{
         method : "POST",
         body : JSON.stringify(body),
     });
     if (!response.ok) {
-        throw new Error("Failed to create document");
+        throw await toApiError(response, "Unable to create a new page. Please try again.");
     }
 
     const doc: any = await response.json();
@@ -54,5 +59,3 @@ export async function createDocument(body : object, diaryId : number): Promise<D
         revisions:  doc.revisions ?? [],
     };
 }
-
-

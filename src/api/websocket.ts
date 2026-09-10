@@ -103,6 +103,7 @@ export function connectNotificationSession(
 export function connectDiarySession(
     diaryId: number,
     onStatusChange?: (s: StompStatus) => void,
+    onError?: (message: string) => void,
 ): DiarySessionHandle {
 
     let status: StompStatus = "connecting";
@@ -115,6 +116,18 @@ export function connectDiarySession(
     }
 
     const token = localStorage.getItem("token") ?? "";
+
+    function stompErrorMessage(body: string, fallback: string) {
+        try {
+            const parsed: unknown = JSON.parse(body)
+            if (parsed && typeof parsed === "object" && "message" in parsed && typeof parsed.message === "string") {
+                return parsed.message
+            }
+        } catch {
+            // Until the backend serializes STOMP errors, broker bodies can be plain text.
+        }
+        return body.trim() || fallback
+    }
 
     // ── STOMP client
     const client = new Client({
@@ -158,11 +171,13 @@ export function connectDiarySession(
         onStompError: (frame) => {
             console.error("[STOMP] error:", frame.headers, frame.body);
             setStatus("error");
+            onError?.(stompErrorMessage(frame.body, "The collaboration connection was rejected."));
         },
 
         onWebSocketError: (err) => {
             console.error("[STOMP] WebSocket error:", err);
             setStatus("error");
+            onError?.("Unable to connect to collaboration. Please try again.");
         },
     });
 

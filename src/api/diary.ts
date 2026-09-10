@@ -1,22 +1,11 @@
-import { apiFetch } from "./client";
-
-async function responseBody(response: Response) {
-    const body = await response.text();
-    if (!body) return null;
-
-    try {
-        return JSON.parse(body);
-    } catch {
-        return body;
-    }
-}
+import { apiFetch, toApiError } from "./client";
 
 //get all diaries
 export async function getDiaries() {
     const response = await apiFetch("/diary/my");
 
     if (!response.ok) {
-        throw new Error("Failed to get diaries");
+        throw await toApiError(response, "Unable to load your diaries. Please try again.");
     }
 
     return response.json();
@@ -27,7 +16,7 @@ export async function getCollaboratedDiaries() {
     const response = await apiFetch("/diary/collaborated");
 
     if (!response.ok) {
-        throw new Error("Failed to get diaries");
+        throw await toApiError(response, "Unable to load shared diaries. Please try again.");
     }
 
     return response.json();
@@ -39,7 +28,7 @@ export async function getDiary(id: number) {
     const response = await apiFetch(`/diary/${id}`);
 
     if (!response.ok) {
-        throw new Error("Failed to get diaries");
+        throw await toApiError(response, "Unable to load this diary. Please try again.");
     }
 
     return response.json();
@@ -53,7 +42,7 @@ export async function addDiary(body: object) {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to create diary: ${response.status}`);
+        throw await toApiError(response, "Unable to create this diary. Please try again.");
     }
 
     return response.json();
@@ -73,7 +62,7 @@ export async function editDiary(diaryId: number, body: DiaryEditPayload) {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to edit diary: ${response.status}`);
+        throw await toApiError(response, "Unable to update this diary. Please try again.");
     }
 
     return response.json();
@@ -91,7 +80,7 @@ export async function deleteDiary(diaryId : number) {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to create diary: ${response.status}`);
+        throw await toApiError(response, "Unable to delete this diary. Please try again.");
     }
 
     return response.json();
@@ -106,7 +95,7 @@ export async function getAllCollaborators(diaryId: number) {
     })
 
     if (!response.ok) {
-        throw new Error(`Failed to get diary: ${response.status}`);
+        throw await toApiError(response, "Unable to load collaborators. Please try again.");
     }
 
     return response.json();
@@ -127,10 +116,10 @@ export async function addCollaborator(diaryId: number, email: string) {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to add collaborator: ${response.status}`);
+        throw await toApiError(response, "Unable to add this collaborator. Please try again.");
     }
 
-    return responseBody(response);
+    return response.json().catch(() => null);
 }
 
 // remove /diary/{diaryId}/remove/collaborator
@@ -145,8 +134,8 @@ export async function removeCollaborator(diaryId: number, email: string) {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to remove collaborator: ${response.status}`);
+        throw await toApiError(response, "Unable to remove this collaborator. Please try again.");
     }
 
-    return responseBody(response);
+    return response.json().catch(() => null);
 }
