@@ -5,12 +5,14 @@ import {
   PlusIcon,
   DocumentTextIcon,
   UsersIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import ChatPopout from '../components/ChatPopout'
 import CollaboratorModal from '../components/CollaboratorModal'
-import { getDiary } from '../api/diary'
-import { getDocuments, createDocument, type Document } from '../api/document'
+import { getDiary, getDiaries } from '../api/diary'
+import { getDocuments, createDocument, deleteDocument, type Document } from '../api/document'
+import ConfirmModal from '../components/ConfirmModal'
 import { useDiarySession } from '../context/DiarySessionContext'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
@@ -43,7 +45,7 @@ function normaliseDiary(diary: any) {
 function isDiaryOwner(diary: any, user: { id: number; username: string } | null) {
   if (!user) return false
 
-  const ownerId = diary.ownerId ?? diary.owner?.id ?? diary.owner?.userId
+  const ownerId = diary.ownerId ?? diary.diaryOwnerId ?? diary.createdById ?? diary.creatorId ?? diary.userId ?? diary.owner?.id ?? diary.owner?.userId ?? diary.createdBy?.id
   if (ownerId !== undefined && ownerId !== null) return Number(ownerId) === user.id
 
   const ownerUsername = diary.ownerUsername ?? diary.diaryOwnerName ?? diary.owner?.username ?? diary.owner
@@ -69,6 +71,9 @@ export default function DiaryPages() {
   const [addingPage, setAddingPage] = useState(false)
   const [collaboratorsOpen, setCollaboratorsOpen] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Document | null>(null)
+  const [deletingPage, setDeletingPage] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // ── Open session on mount ────────────────────────────────────────────────
   // Do NOT close on unmount here — DocumentView keeps the same session alive.
@@ -86,12 +91,16 @@ export default function DiaryPages() {
     setError(null)
     setIsOwner(false)
 
-    Promise.all([getDiary(numId), getDocuments(numId), loadHistory(numId)])
-      .then(([diary, docs]) => {
+    Promise.all([getDiary(numId), getDocuments(numId), loadHistory(numId), getDiaries()])
+      .then(([diary, docs, , myDiaries]) => {
         const { title, emoji } = normaliseDiary(diary)
         setDiaryTitle(title)
         setDiaryEmoji(emoji)
-        setIsOwner(isOwnerFromList || isDiaryOwner(diary, user))
+        // The profile ID is the primary ownership check. The authenticated
+        // "my diaries" list is a reliable fallback for API responses that do
+        // not include ownerId, including when navigating back from a document.
+        const listedAsMine = Array.isArray(myDiaries) && myDiaries.some(item => Number(item.diaryId ?? item.id) === numId)
+        setIsOwner(isDiaryOwner(diary, user) || listedAsMine || isOwnerFromList)
         setDocuments([...docs].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         ))
@@ -99,6 +108,21 @@ export default function DiaryPages() {
       .catch(err => setError(errorMessage(err, 'Unable to load this diary. Please try again.')))
       .finally(() => setLoading(false))
   }, [id, user, isOwnerFromList])
+
+  const handleDeletePage = useCallback(async () => {
+    if (!id || !deleteTarget || deletingPage) return
+    setDeletingPage(true)
+    setDeleteError(null)
+    try {
+      await deleteDocument(Number(id), deleteTarget.documentId)
+      setDocuments(items => items.filter(item => item.documentId !== deleteTarget.documentId))
+      setDeleteTarget(null)
+    } catch (err) {
+      setDeleteError(errorMessage(err, 'Unable to delete this page. Please try again.'))
+    } finally {
+      setDeletingPage(false)
+    }
+  }, [id, deleteTarget, deletingPage])
 
   // ── Add page ──────────────────────────────────────────────────────────────
   const handleNewPage = useCallback(async () => {
@@ -222,6 +246,13 @@ export default function DiaryPages() {
                         <p className="font-semibold text-sm truncate">{formatDate(doc.date)}</p>
                         <p className="text-xs text-base-content/40 mt-0.5">{formatTime(doc.date)}</p>
                       </div>
+                      {isOwner && <button
+                        type="button"
+                        onClick={event => { event.stopPropagation(); setDeleteError(null); setDeleteTarget(doc) }}
+                        className="btn btn-ghost btn-sm btn-circle text-base-content/30 hover:text-error hover:bg-error/10"
+                        title="Delete page"
+                        aria-label={`Delete page from ${formatDate(doc.date)}`}
+                      ><TrashIcon className="w-4 h-4" /></button>}
                       <DocumentTextIcon className="w-4 h-4 text-base-content/20 group-hover:text-primary flex-shrink-0 transition-colors duration-200" />
                     </div>
                   </div>
@@ -244,6 +275,17 @@ export default function DiaryPages() {
         diaryId={Number(id)}
         canRemove={isOwner}
         onClose={() => setCollaboratorsOpen(false)}
+      />
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete Page"
+        description={`Are you sure you want to delete the entry from ${deleteTarget ? formatDate(deleteTarget.date) : ''}? This cannot be undone.`}
+        confirmLabel="Delete"
+        loading={deletingPage}
+        error={deleteError}
+        onClose={() => { if (!deletingPage) { setDeleteTarget(null); setDeleteError(null) } }}
+        onConfirm={() => { void handleDeletePage() }}
       />
 
       <footer className="footer footer-center p-4 bg-base-100 text-base-content/40 text-xs border-t border-base-300">
