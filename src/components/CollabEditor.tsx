@@ -5,6 +5,7 @@
  * - Presence bar shows remote users from YJS awareness
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { CameraIcon } from '@heroicons/react/24/outline'
 import * as Y from 'yjs'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import { Client } from '@stomp/stompjs'
@@ -58,12 +59,18 @@ interface CollabEditorProps {
   documentId: number
   userId:     number
   userName:   string
+  onSaveSnapshot: (yjsUpdate: Uint8Array) => Promise<void>
+  onSnapshotError?: (error: unknown) => void
 }
 
-export default function CollabEditor({ diaryId, documentId, userId, userName }: CollabEditorProps) {
+export default function CollabEditor({ diaryId, documentId, userId, userName, onSaveSnapshot, onSnapshotError }: CollabEditorProps) {
   const mountRef    = useRef<HTMLDivElement>(null)
+  const saveSnapshotRef = useRef<(() => Promise<void>) | null>(null)
+  const savingSnapshotRef = useRef(false)
   // Awareness state lifted to React so presence bar re-renders
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
+  const [savingSnapshot, setSavingSnapshot] = useState(false)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'waiting' | 'saving' | 'error'>('saved')
 
   // Stable ref for the awareness object so the awareness change handler
   // can call setRemoteUsers without being re-created on every render
@@ -101,20 +108,50 @@ export default function CollabEditor({ diaryId, documentId, userId, userName }: 
 
     // ── Persistence (2 s debounce) ────────────────────────────────────────
     let saveTimer: ReturnType<typeof setTimeout> | null = null
+    let saveGeneration = 0
+    async function persistState(state = Y.encodeStateAsUpdate(ydoc)) {
+      const response = await fetch(`${API_URL}/document/${diaryId}/${documentId}/yjs`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${token}` },
+        body:    state.buffer as ArrayBuffer,
+      })
+      if (!response.ok) throw new Error('Unable to save the current document state.')
+    }
     function scheduleSave() {
       clearTimeout(saveTimer ?? undefined)
-      saveTimer = setTimeout(async () => {
+      const generation = ++saveGeneration
+      setAutoSaveStatus('waiting')
+      saveTimer = setTimeout(() => {
         saveTimer = null
-        try {
-          const state = Y.encodeStateAsUpdate(ydoc)
-          await fetch(`${API_URL}/document/${diaryId}/${documentId}/yjs`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${token}` },
-            body:    state.buffer as ArrayBuffer,
+        setAutoSaveStatus('saving')
+        persistState()
+          .then(() => { if (!destroyed && generation === saveGeneration) setAutoSaveStatus('saved') })
+          .catch((e) => {
+            console.error('[CollabEditor] save error', e)
+            if (!destroyed && generation === saveGeneration) setAutoSaveStatus('error')
           })
-        } catch (e) { console.error('[CollabEditor] save error', e) }
       }, 2000)
     }
+
+    const saveSnapshot = async () => {
+      if (savingSnapshotRef.current) return
+      savingSnapshotRef.current = true
+      setSavingSnapshot(true)
+      try {
+        clearTimeout(saveTimer ?? undefined)
+        saveTimer = null
+        const state = Y.encodeStateAsUpdate(ydoc)
+        await persistState(state)
+        await onSaveSnapshot(state)
+        if (!destroyed) setAutoSaveStatus('saved')
+      } catch (error) {
+        onSnapshotError?.(error)
+      } finally {
+        savingSnapshotRef.current = false
+        if (!destroyed) setSavingSnapshot(false)
+      }
+    }
+    saveSnapshotRef.current = saveSnapshot
 
     // ── AFK debounce for YJSUPDATE ────────────────────────────────────────
     // Accumulate updates while the user is actively typing, flush after
@@ -303,6 +340,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName }: 
           if (origin === REMOTE) return
           if (!stomp.connected) return
           pendingOutbound.push(update)
+          setAutoSaveStatus('waiting')
           clearTimeout(afkTimer ?? undefined)
           afkTimer = setTimeout(() => flushOutbound(stomp), 500)
         })
@@ -335,6 +373,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName }: 
     // ── Cleanup ───────────────────────────────────────────────────────────
     return () => {
       destroyed = true          // gate all view/awareness access immediately
+      saveSnapshotRef.current = null
       clearTimeout(saveTimer   ?? undefined)
       clearTimeout(typingTimer ?? undefined)
       clearTimeout(afkTimer    ?? undefined)
@@ -347,7 +386,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName }: 
       ydoc.destroy()
       stomp.deactivate()
     }
-  }, [diaryId, documentId, userId, userName, refreshPresence])
+  }, [diaryId, documentId, userId, userName, refreshPresence, onSaveSnapshot, onSnapshotError])
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -377,9 +416,22 @@ export default function CollabEditor({ diaryId, documentId, userId, userName }: 
 
         {/* Keyboard hint + save status */}
         <div className="ml-auto flex items-center gap-3 text-[11px] text-base-content/40">
+          <button
+            type="button"
+            onClick={() => { void saveSnapshotRef.current?.() }}
+            disabled={savingSnapshot || autoSaveStatus === 'waiting' || autoSaveStatus === 'saving'}
+            className="btn btn-ghost btn-xs gap-1 normal-case text-base-content/60"
+            title={autoSaveStatus === 'waiting' || autoSaveStatus === 'saving' ? 'Wait for the current edits to auto-save before creating a snapshot' : 'Save a revision snapshot'}
+          >
+            {savingSnapshot ? <span className="loading loading-spinner loading-xs" /> : <CameraIcon className="w-3.5 h-3.5" />}
+            Save snapshot
+          </button>
           <span><kbd className="kbd kbd-xs">Ctrl+Z</kbd> Undo</span>
           <span><kbd className="kbd kbd-xs">Ctrl+Y</kbd> Redo</span>
-          <span className="opacity-60">Auto-saved</span>
+          <span className={`flex items-center gap-1 ${autoSaveStatus === 'error' ? 'text-error' : 'opacity-60'}`}>
+            {(autoSaveStatus === 'waiting' || autoSaveStatus === 'saving') && <span className="loading loading-spinner loading-xs" />}
+            {autoSaveStatus === 'waiting' ? 'Auto-save pending' : autoSaveStatus === 'saving' ? 'Saving…' : autoSaveStatus === 'error' ? 'Auto-save failed' : 'Auto-saved'}
+          </span>
         </div>
       </div>
 
