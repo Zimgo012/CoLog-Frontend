@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeftIcon, ClockIcon, XMarkIcon, TrashIcon, CameraIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 import * as Y from 'yjs'
 import { EditorState } from 'prosemirror-state'
@@ -158,7 +158,8 @@ function RevisionContent({ revision, revisions }: { revision: Revision; revision
 }
 
 export default function DocumentView() {
-  const { id, pageId } = useParams(); const navigate = useNavigate()
+  const { id, pageId } = useParams(); const navigate = useNavigate(); const location = useLocation()
+  const isOwnerFromPages = (location.state as { isOwner?: boolean } | null)?.isOwner === true
   const { openSession, wsStatus, wsError, chatMessages, sendChat } = useDiarySession(); const { user } = useAuth()
   const diaryId = Number(id), documentId = Number(pageId), validDocument = Number.isFinite(diaryId) && Number.isFinite(documentId) && documentId > 0
   const [historyOpen, setHistoryOpen] = useState(false); const [revisions, setRevisions] = useState<Revision[]>([])
@@ -184,16 +185,16 @@ export default function DocumentView() {
   const openPreview = useCallback(async (revisionId: number) => {
     setPreviewLoading(true); setHistoryError(null)
     try {
-      const [all, selected] = await Promise.all([getRevisions(documentId), getRevision(documentId, revisionId)])
-      setRevisions(all.map(item => item.revisionId === selected.revisionId ? selected : item).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+      const selected = await getRevision(documentId, revisionId)
+      setRevisions(items => items.map(item => item.revisionId === selected.revisionId ? selected : item))
       setPreview(selected)
     } catch (error) { setHistoryError(errorMessage(error, 'Unable to load this revision.')) } finally { setPreviewLoading(false) }
   }, [documentId])
   const openComparison = useCallback(async (newerId: number, olderId: number) => {
     setPreviewLoading(true); setHistoryError(null)
     try {
-      const [all, newer, older] = await Promise.all([getRevisions(documentId), getRevision(documentId, newerId), getRevision(documentId, olderId)])
-      setRevisions(all.map(item => item.revisionId === newer.revisionId ? newer : item.revisionId === older.revisionId ? older : item).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+      const [newer, older] = await Promise.all([getRevision(documentId, newerId), getRevision(documentId, olderId)])
+      setRevisions(items => items.map(item => item.revisionId === newer.revisionId ? newer : item.revisionId === older.revisionId ? older : item))
       setComparison({ newer, older })
     } catch (error) { setHistoryError(errorMessage(error, 'Unable to compare these revisions.')) } finally { setPreviewLoading(false) }
   }, [documentId])
@@ -206,7 +207,7 @@ export default function DocumentView() {
   const previousRevision = previewIndex >= 0 ? revisions[previewIndex + 1] : undefined
 
   return <div className="h-screen bg-base-200 flex flex-col overflow-hidden">
-    <Navbar left={<><button onClick={() => navigate(`/diary/${id}/pages`)} className="btn btn-ghost btn-sm btn-circle" aria-label="Back"><ArrowLeftIcon className="w-5 h-5" /></button><span className="font-semibold text-sm">{pageId ? `Document ${pageId}` : 'Document'}</span></>} actions={<div className="flex gap-1"><button onClick={() => setHistoryOpen(open => !open)} className={`btn btn-sm btn-circle ${historyOpen ? 'btn-primary' : 'btn-ghost'}`} title="Revision history"><ClockIcon className="w-4 h-4" /></button><button onClick={() => setDeleteOpen(true)} className="btn btn-ghost btn-sm btn-circle text-error" title="Delete document"><TrashIcon className="w-4 h-4" /></button></div>} />
+    <Navbar left={<><button onClick={() => navigate(`/diary/${id}/pages`, { state: { isOwner: isOwnerFromPages } })} className="btn btn-ghost btn-sm btn-circle" aria-label="Back"><ArrowLeftIcon className="w-5 h-5" /></button><span className="font-semibold text-sm">{pageId ? `Document ${pageId}` : 'Document'}</span></>} actions={<div className="flex gap-1"><button onClick={() => setHistoryOpen(open => !open)} className={`btn btn-sm btn-circle ${historyOpen ? 'btn-primary' : 'btn-ghost'}`} title="Revision history"><ClockIcon className="w-4 h-4" /></button><button onClick={() => setDeleteOpen(true)} className="btn btn-ghost btn-sm btn-circle text-error" title="Delete document"><TrashIcon className="w-4 h-4" /></button></div>} />
     <div className="flex flex-1 overflow-hidden"><main className="flex-1 overflow-y-auto"><div className="container mx-auto px-4 py-8 max-w-3xl flex flex-col gap-4">
       {wsError && <div role="alert" className="alert alert-warning text-sm">{wsError}</div>}
       <div className="bg-base-100 rounded-2xl shadow-sm border border-base-300 overflow-hidden">{!user || !validDocument ? <div className="min-h-96 flex items-center justify-center"><span className="loading loading-spinner loading-md text-primary" /></div> : <CollabEditor diaryId={diaryId} documentId={documentId} userId={user.id} userName={`${user.firstName} ${user.lastName}`.trim() || user.username} onSaveSnapshot={handleSaveSnapshot} onSnapshotError={handleSnapshotError} />}</div>

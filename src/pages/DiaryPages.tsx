@@ -10,7 +10,7 @@ import {
 import Navbar from '../components/Navbar'
 import ChatPopout from '../components/ChatPopout'
 import CollaboratorModal from '../components/CollaboratorModal'
-import { getDiary, getDiaries } from '../api/diary'
+import { getDiary } from '../api/diary'
 import { getDocuments, createDocument, deleteDocument, type Document } from '../api/document'
 import ConfirmModal from '../components/ConfirmModal'
 import { useDiarySession } from '../context/DiarySessionContext'
@@ -91,16 +91,14 @@ export default function DiaryPages() {
     setError(null)
     setIsOwner(false)
 
-    Promise.all([getDiary(numId), getDocuments(numId), loadHistory(numId), getDiaries()])
-      .then(([diary, docs, , myDiaries]) => {
+    Promise.all([getDiary(numId), getDocuments(numId), loadHistory(numId)])
+      .then(([diary, docs]) => {
         const { title, emoji } = normaliseDiary(diary)
         setDiaryTitle(title)
         setDiaryEmoji(emoji)
-        // The profile ID is the primary ownership check. The authenticated
-        // "my diaries" list is a reliable fallback for API responses that do
-        // not include ownerId, including when navigating back from a document.
-        const listedAsMine = Array.isArray(myDiaries) && myDiaries.some(item => Number(item.diaryId ?? item.id) === numId)
-        setIsOwner(isDiaryOwner(diary, user) || listedAsMine || isOwnerFromList)
+        // The profile ID is the primary ownership check. Navigation state
+        // preserves a confirmed result when returning from a document view.
+        setIsOwner(isDiaryOwner(diary, user) || isOwnerFromList)
         setDocuments([...docs].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         ))
@@ -133,13 +131,13 @@ export default function DiaryPages() {
       const date = new Date().toISOString().slice(0, -1)
       const newDoc = await createDocument({ date }, Number(id))
       setDocuments(prev => [newDoc, ...prev])
-      navigate(`/diary/${id}/pages/${newDoc.documentId}`)
+      navigate(`/diary/${id}/pages/${newDoc.documentId}`, { state: { isOwner } })
     } catch (err) {
       setError(errorMessage(err, 'Unable to create a new page. Please try again.'))
     } finally {
       setAddingPage(false)
     }
-  }, [id, addingPage, navigate])
+  }, [id, addingPage, isOwner, navigate])
 
   // ── Shared nav left slot ──────────────────────────────────────────────────
   const navLeft = (
@@ -235,7 +233,7 @@ export default function DiaryPages() {
                 {documents.map((doc, index) => (
                   <div
                     key={doc.documentId}
-                    onClick={() => navigate(`/diary/${id}/pages/${doc.documentId}`)}
+                    onClick={() => navigate(`/diary/${id}/pages/${doc.documentId}`, { state: { isOwner } })}
                     className="card bg-base-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
                   >
                     <div className="card-body flex-row items-center gap-4 py-4 px-5">
