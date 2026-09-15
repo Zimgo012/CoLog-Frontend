@@ -59,3 +59,14 @@ export async function createDocument(body: CreateDocumentPayload, diaryId: numbe
         revisions:  doc.revisions ?? [],
     };
 }
+
+// DELETE /document/{diaryId}/{documentId}
+export async function deleteDocument(diaryId: number, documentId: number): Promise<void> {
+    const response = await apiFetch(`/document/${diaryId}/${documentId}`, {
+        method: "DELETE",
+    });
+
+    if (!response.ok) {
+        throw await toApiError(response, "Unable to delete this page. Please try again.");
+    }
+}
