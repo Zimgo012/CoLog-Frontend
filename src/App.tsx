@@ -12,34 +12,43 @@ import { AuthProvider } from "./auth/AuthContext.tsx";
 import ProtectedRoute from "./auth/ProtectedRoute.tsx";
 import SessionExpiredModal from "./components/SessionExpiredModal.tsx";
 import { NotificationProvider } from "./context/NotificationContext.tsx";
+import { ThemeProvider, useTheme } from "./context/ThemeContext.tsx";
+
+function ThemedApp() {
+  const { theme } = useTheme()
+  return <div data-theme={theme} className="min-h-screen bg-base-200 text-base-content">
+    <SessionExpiredModal />
+    <Routes>
+      {/* Home — hero, no navbar */}
+      <Route path="/" element={<HomeLayout />}>
+        <Route index element={<Home />} />
+      </Route>
+
+      {/* Auth — standalone full-screen pages */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/diary" element={<MainMenu />} />
+        <Route path="/diary/:id/pages" element={<DiaryPages />} />
+        <Route path="/diary/:id/pages/:pageId" element={<DocumentView />} />
+      </Route>
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </div>
+}
 
 function App() {
   return (
     <AuthProvider>
-      <NotificationProvider>
-        <DiarySessionProvider>
-          <SessionExpiredModal />
-          <Routes>
-          {/* Home — hero, no navbar */}
-          <Route path="/" element={<HomeLayout />}>
-            <Route index element={<Home />} />
-          </Route>
-
-          {/* Auth — standalone full-screen pages */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-          <Route element={<ProtectedRoute />}>
-            {/* App */}
-            <Route path="/diary" element={<MainMenu />} />
-            <Route path="/diary/:id/pages" element={<DiaryPages />} />
-            <Route path="/diary/:id/pages/:pageId" element={<DocumentView />} />
-          </Route>
-
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-        </DiarySessionProvider>
-      </NotificationProvider>
+      <ThemeProvider>
+        <NotificationProvider>
+          <DiarySessionProvider>
+            <ThemedApp />
+          </DiarySessionProvider>
+        </NotificationProvider>
+      </ThemeProvider>
     </AuthProvider>
   )
 }

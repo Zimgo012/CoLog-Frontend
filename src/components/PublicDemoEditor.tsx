@@ -157,12 +157,12 @@ export default function PublicDemoEditor() {
   return (
     <section className="w-full max-w-3xl text-left" aria-label="Live collaboration demo">
       <div className="card bg-base-100 border border-base-300 shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-base-200 bg-base-100">
-          <div>
+        <div className="flex flex-col items-start gap-2 px-5 py-3 border-b border-base-200 bg-base-100 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h2 className="font-bold text-base-content">Try live collaboration</h2>
             <p className="text-xs text-base-content/60">Open this page in another tab and edit together.</p>
           </div>
-          <span className={`badge gap-1 ${connection === 'connected' ? 'badge-success' : 'badge-ghost'}`}>
+          <span className={`badge h-auto max-w-full gap-1 whitespace-normal py-1.5 text-left ${connection === 'connected' ? 'badge-success' : 'badge-ghost'}`}>
             <span className={`w-2 h-2 rounded-full ${connection === 'connected' ? 'bg-success-content animate-pulse' : 'bg-base-content/40'}`} />
             {status}
           </span>

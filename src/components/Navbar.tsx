@@ -2,6 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import ProfileModal from "./ProfileModal";
+import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { useTheme } from "../context/ThemeContext";
 
 interface NavbarProps {
   /** Content rendered in the left / flex-1 slot. Defaults to CoLog wordmark. */
@@ -13,6 +15,7 @@ interface NavbarProps {
 export default function Navbar({ left, actions }: NavbarProps) {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -41,6 +44,16 @@ export default function Navbar({ left, actions }: NavbarProps) {
         {/* Right slot */}
         <div className="flex items-center gap-2">
           {actions}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="btn btn-ghost btn-sm btn-circle"
+            title={theme === "colog" ? "Switch to dark mode" : "Switch to light mode"}
+            aria-label={theme === "colog" ? "Switch to dark mode" : "Switch to light mode"}
+          >
+            {theme === "colog" ? <MoonIcon className="w-4 h-4" /> : <SunIcon className="w-4 h-4" />}
+          </button>
 
           <div className="dropdown dropdown-end">
             <div
