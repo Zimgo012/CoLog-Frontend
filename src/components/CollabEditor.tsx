@@ -5,16 +5,15 @@
  * - Presence bar shows remote users from YJS awareness
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { CameraIcon } from '@heroicons/react/24/outline'
+import { CameraIcon, BoldIcon, ItalicIcon } from '@heroicons/react/24/outline'
 import * as Y from 'yjs'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import { Client } from '@stomp/stompjs'
 import { EditorState } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
-import { schema } from 'prosemirror-schema-basic'
 import { history, undo, redo } from 'prosemirror-history'
 import { keymap } from 'prosemirror-keymap'
-import { baseKeymap } from 'prosemirror-commands'
+import { baseKeymap, toggleMark } from 'prosemirror-commands'
 import {
   ySyncPlugin,
   ySyncPluginKey,
@@ -22,6 +21,7 @@ import {
   relativePositionToAbsolutePosition,
 } from 'y-prosemirror'
 import { presencePluginKey, createPresencePlugin } from '../lib/presencePlugin'
+import { editorSchema } from '../lib/editorSchema'
 
 const WS_URL  = import.meta.env.VITE_WS_URL  ?? 'ws://localhost:8083'
 const API_URL = import.meta.env.VITE_API_URL  ?? 'http://localhost:8083'
@@ -65,12 +65,32 @@ interface CollabEditorProps {
 
 export default function CollabEditor({ diaryId, documentId, userId, userName, onSaveSnapshot, onSnapshotError }: CollabEditorProps) {
   const mountRef    = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<EditorView | null>(null)
   const saveSnapshotRef = useRef<(() => Promise<void>) | null>(null)
   const savingSnapshotRef = useRef(false)
   // Awareness state lifted to React so presence bar re-renders
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
   const [savingSnapshot, setSavingSnapshot] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'waiting' | 'saving' | 'error'>('saved')
+
+  const runMarkCommand = useCallback((name: 'strong' | 'em') => {
+    const view = editorRef.current
+    if (view) toggleMark(editorSchema.marks[name])(view.state, view.dispatch, view)
+  }, [])
+  const applyTextStyle = useCallback((attrs: { fontFamily?: string | null; fontSize?: string | null }) => {
+    const view = editorRef.current
+    const markType = editorSchema.marks.textStyle
+    if (!view || !markType) return
+    const { from, to, empty } = view.state.selection
+    const activeMarks = view.state.storedMarks ?? view.state.doc.resolve(from).marks()
+    const currentStyle = activeMarks.find(mark => mark.type === markType)
+    const mark = markType.create({ ...currentStyle?.attrs, ...attrs })
+    const transaction = empty
+      ? view.state.tr.addStoredMark(mark)
+      : view.state.tr.addMark(from, to, mark)
+    view.dispatch(transaction)
+    view.focus()
+  }, [])
 
   // Stable ref for the awareness object so the awareness change handler
   // can call setRemoteUsers without being re-created on every render
@@ -176,7 +196,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
     }
 
     // ── Editor locals ─────────────────────────────────────────────────────
-    let currentState: EditorState = EditorState.create({ schema })
+    let currentState: EditorState = EditorState.create({ schema: editorSchema })
     let typingTimer: ReturnType<typeof setTimeout> | null = null
     let destroyed = false   // set true in cleanup to gate all view access
     const viewBox = { current: null as EditorView | null }
@@ -225,7 +245,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
 
     // ── Build full EditorState ────────────────────────────────────────────
     currentState = EditorState.create({
-      schema,
+      schema: editorSchema,
       plugins: [
         ySyncPlugin(yXml),
         history(),
@@ -259,6 +279,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
       },
     })
     viewBox.current = editorView
+    editorRef.current = editorView
 
     // ── Rebuild remote cursors on awareness change + update presence bar ──
     awareness.on('change', () => {
@@ -380,6 +401,7 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
       if (pendingOutbound.length > 0 && stomp.connected) flushOutbound(stomp)
       try { awareness.setLocalState(null) } catch { /* ignore */ }
       viewBox.current      = null
+      editorRef.current    = null
       awarenessRef.current = null
       editorView.destroy()
       awareness.destroy()
@@ -433,6 +455,32 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
             {autoSaveStatus === 'waiting' ? 'Auto-save pending' : autoSaveStatus === 'saving' ? 'Saving…' : autoSaveStatus === 'error' ? 'Auto-save failed' : 'Auto-saved'}
           </span>
         </div>
+      </div>
+
+      {/* Formatting toolbar */}
+      <div className="flex flex-wrap items-center gap-1 px-5 py-2 border-b border-base-200 bg-base-100">
+        <div className="join">
+          <button type="button" onMouseDown={event => event.preventDefault()} onClick={() => runMarkCommand('strong')} className="btn btn-ghost btn-sm join-item" title="Bold"><BoldIcon className="w-4 h-4" /></button>
+          <button type="button" onMouseDown={event => event.preventDefault()} onClick={() => runMarkCommand('em')} className="btn btn-ghost btn-sm join-item" title="Italic"><ItalicIcon className="w-4 h-4" /></button>
+        </div>
+        <div className="h-5 border-l border-base-300 mx-1" />
+        <label className="sr-only" htmlFor="font-family">Font family</label>
+        <select id="font-family" defaultValue="" onChange={event => applyTextStyle({ fontFamily: event.target.value || null })} className="select select-bordered select-sm w-36 text-xs" title="Font family">
+          <option value="">Default font</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="'Courier New', monospace">Courier New</option>
+        </select>
+        <label className="sr-only" htmlFor="font-size">Font size</label>
+        <select id="font-size" defaultValue="" onChange={event => applyTextStyle({ fontSize: event.target.value || null })} className="select select-bordered select-sm w-28 text-xs" title="Font size">
+          <option value="">Font size</option>
+          <option value="12px">12 px</option>
+          <option value="14px">14 px</option>
+          <option value="16px">16 px</option>
+          <option value="18px">18 px</option>
+          <option value="20px">20 px</option>
+          <option value="24px">24 px</option>
+        </select>
       </div>
 
       {/* ProseMirror mount */}

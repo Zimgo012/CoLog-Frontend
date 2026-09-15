@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, type CSSProperties } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeftIcon, ClockIcon, XMarkIcon, TrashIcon, CameraIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 import * as Y from 'yjs'
 import { EditorState } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
 import { Node as ProseMirrorNode } from 'prosemirror-model'
-import { schema } from 'prosemirror-schema-basic'
 import { yXmlFragmentToProsemirrorJSON } from 'y-prosemirror'
+import { editorSchema } from '../lib/editorSchema'
 import Navbar from '../components/Navbar'
 import ChatPopout from '../components/ChatPopout'
 import CollabEditor from '../components/CollabEditor'
@@ -75,42 +75,62 @@ function buildRevisionDocument(updates: Uint8Array[]): Y.Doc {
   }
 }
 
-function revisionText(revision: Revision, revisions: Revision[]): string {
+type DiffToken = { value: string; fontFamily?: string; fontSize?: string; bold?: boolean; italic?: boolean }
+function revisionTokens(revision: Revision, revisions: Revision[]): DiffToken[] {
   const updates = updatesThroughRevision(revisions, revision)
-  if (updates.length === 0) return ''
+  if (updates.length === 0) return []
   const ydoc = buildRevisionDocument(updates)
   try {
     const json = yXmlFragmentToProsemirrorJSON(ydoc.getXmlFragment('prosemirror'))
-    const collect = (node: unknown): string => {
-      if (!node || typeof node !== 'object') return ''
-      const value = node as { text?: unknown; content?: unknown }
-      if (typeof value.text === 'string') return value.text
-      return Array.isArray(value.content) ? value.content.map(collect).filter(Boolean).join('\n') : ''
+    const tokens: DiffToken[] = []
+    const append = (text: string, marks: unknown) => {
+      const markList = Array.isArray(marks) ? marks as Array<{ type?: string; attrs?: Record<string, unknown> }> : []
+      const textStyle = markList.find(mark => mark.type === 'textStyle')?.attrs
+      const style = {
+        fontFamily: typeof textStyle?.fontFamily === 'string' ? textStyle.fontFamily : undefined,
+        fontSize: typeof textStyle?.fontSize === 'string' ? textStyle.fontSize : undefined,
+        bold: markList.some(mark => mark.type === 'strong'),
+        italic: markList.some(mark => mark.type === 'em'),
+      }
+      for (const value of text.match(/\s+|[^\s]+/g) ?? []) tokens.push({ value, ...style })
     }
-    return collect(json).replace(/\n{3,}/g, '\n\n').trim()
+    const visit = (node: unknown, isLast = true) => {
+      if (!node || typeof node !== 'object') return
+      const value = node as { type?: unknown; text?: unknown; marks?: unknown; content?: unknown }
+      if (typeof value.text === 'string') { append(value.text, value.marks); return }
+      const content = value.content
+      if (!Array.isArray(content)) return
+      content.forEach((child, index) => visit(child, index === content.length - 1))
+      if (!isLast && ['paragraph', 'heading', 'blockquote', 'list_item'].includes(String(value.type))) append('\n', [])
+    }
+    visit(json)
+    return tokens
   } finally { ydoc.destroy() }
 }
 
-type DiffPart = { value: string; kind: 'same' | 'removed' | 'added' }
-function tokenDiff(before: string, after: string): DiffPart[] {
-  const tokens = (value: string) => value.match(/\s+|[^\s]+/g) ?? []
-  const oldTokens = tokens(before), newTokens = tokens(after), result: DiffPart[] = []
-  const add = (kind: DiffPart['kind'], value: string) => {
+type DiffPart = DiffToken & { kind: 'same' | 'removed' | 'added' | 'styled' }
+function tokenDiff(oldTokens: DiffToken[], newTokens: DiffToken[]): DiffPart[] {
+  const result: DiffPart[] = []
+  const sameStyle = (one: DiffToken, two: DiffToken) => one.fontFamily === two.fontFamily && one.fontSize === two.fontSize && one.bold === two.bold && one.italic === two.italic
+  const add = (kind: DiffPart['kind'], token: DiffToken) => {
     const last = result[result.length - 1]
-    if (last?.kind === kind) last.value += value
-    else result.push({ kind, value })
+    if (last?.kind === kind && sameStyle(last, token)) last.value += token.value
+    else result.push({ kind, ...token })
   }
   let oldIndex = 0, newIndex = 0
   while (oldIndex < oldTokens.length || newIndex < newTokens.length) {
-    if (oldTokens[oldIndex] === newTokens[newIndex]) { add('same', oldTokens[oldIndex++]); newIndex++; continue }
+    if (oldTokens[oldIndex]?.value === newTokens[newIndex]?.value) {
+      add(sameStyle(oldTokens[oldIndex], newTokens[newIndex]) ? 'same' : 'styled', newTokens[newIndex])
+      oldIndex++; newIndex++; continue
+    }
     let oldMatch = -1, newMatch = -1
     for (let offset = 1; offset <= 80 && (oldIndex + offset < oldTokens.length || newIndex + offset < newTokens.length); offset++) {
-      if (oldMatch < 0 && oldTokens[oldIndex + offset] === newTokens[newIndex]) oldMatch = offset
-      if (newMatch < 0 && newTokens[newIndex + offset] === oldTokens[oldIndex]) newMatch = offset
+      if (oldMatch < 0 && oldTokens[oldIndex + offset]?.value === newTokens[newIndex]?.value) oldMatch = offset
+      if (newMatch < 0 && newTokens[newIndex + offset]?.value === oldTokens[oldIndex]?.value) newMatch = offset
       if (oldMatch >= 0 || newMatch >= 0) break
     }
-    if (oldMatch >= 0 && (newMatch < 0 || oldMatch <= newMatch)) { add('removed', oldTokens.slice(oldIndex, oldIndex + oldMatch).join('')); oldIndex += oldMatch }
-    else if (newMatch >= 0) { add('added', newTokens.slice(newIndex, newIndex + newMatch).join('')); newIndex += newMatch }
+    if (oldMatch >= 0 && (newMatch < 0 || oldMatch <= newMatch)) { oldTokens.slice(oldIndex, oldIndex + oldMatch).forEach(token => add('removed', token)); oldIndex += oldMatch }
+    else if (newMatch >= 0) { newTokens.slice(newIndex, newIndex + newMatch).forEach(token => add('added', token)); newIndex += newMatch }
     else { if (oldIndex < oldTokens.length) add('removed', oldTokens[oldIndex++]); if (newIndex < newTokens.length) add('added', newTokens[newIndex++]) }
   }
   return result
@@ -120,12 +140,16 @@ function RevisionDiff({ newer, older, revisions }: { newer: Revision; older: Rev
   const [diff, setDiff] = useState<DiffPart[] | null>(null)
   const [diffError, setDiffError] = useState<string | null>(null)
   useEffect(() => {
-    try { setDiff(tokenDiff(revisionText(older, revisions), revisionText(newer, revisions))); setDiffError(null) }
+    try { setDiff(tokenDiff(revisionTokens(older, revisions), revisionTokens(newer, revisions))); setDiffError(null) }
     catch (error) { console.error('[Revision diff] Unable to decode revisions', error); setDiffError('These revisions could not be decoded for comparison.'); setDiff(null) }
   }, [newer, older, revisions])
   if (diffError) return <p className="text-sm text-error">{diffError}</p>
   if (!diff) return <span className="loading loading-spinner loading-sm text-primary" />
-  return <div className="whitespace-pre-wrap text-sm leading-relaxed">{diff.map((part, index) => part.kind === 'same' ? <span key={index}>{part.value}</span> : <mark key={index} className={part.kind === 'added' ? 'bg-success/25 text-success-content rounded px-0.5' : 'bg-error/20 text-error line-through rounded px-0.5'}>{part.value}</mark>)}</div>
+  return <div className="whitespace-pre-wrap text-sm leading-relaxed">{diff.map((part, index) => {
+    const style: CSSProperties = { fontFamily: part.fontFamily, fontSize: part.fontSize }
+    const className = `${part.bold ? 'font-bold ' : ''}${part.italic ? 'italic ' : ''}${part.kind === 'added' ? 'bg-success/25 text-success-content rounded px-0.5' : part.kind === 'removed' ? 'bg-error/20 text-error line-through rounded px-0.5' : part.kind === 'styled' ? 'bg-warning/30 text-warning-content rounded px-0.5' : ''}`
+    return part.kind === 'same' ? <span key={index} className={className} style={style}>{part.value}</span> : <mark key={index} className={className} style={style}>{part.value}</mark>
+  })}</div>
 }
 
 function RevisionContent({ revision, revisions }: { revision: Revision; revisions: Revision[] }) {
@@ -142,7 +166,7 @@ function RevisionContent({ revision, revisions }: { revision: Revision; revision
       // mergeUpdates combines the incremental byte[] values into one valid
       // Yjs state update before it is applied to the preview document.
       const ydoc = buildRevisionDocument(updates)
-      const doc = ProseMirrorNode.fromJSON(schema, yXmlFragmentToProsemirrorJSON(ydoc.getXmlFragment('prosemirror')))
+      const doc = ProseMirrorNode.fromJSON(editorSchema, yXmlFragmentToProsemirrorJSON(ydoc.getXmlFragment('prosemirror')))
       const view = new EditorView(mount, { state: EditorState.create({ doc }), editable: () => false })
       return () => { view.destroy(); ydoc.destroy() }
     } catch (error) {
@@ -215,7 +239,7 @@ export default function DocumentView() {
     {historyOpen && <aside className="w-72 shrink-0 bg-base-100 border-l border-base-300 flex flex-col z-50"><div className="flex items-center justify-between px-4 py-3 border-b border-base-300"><span className="font-semibold text-sm">Revision History</span><button onClick={() => setHistoryOpen(false)} className="btn btn-ghost btn-xs btn-circle"><XMarkIcon className="w-4 h-4" /></button></div><div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2"><p className="text-xs text-base-content/40">Select a snapshot to preview it or compare its changes.</p>{historyLoading && <span className="loading loading-spinner loading-sm text-primary self-center mt-4" />}{historyError && <div role="alert" className="alert alert-error text-xs py-2">{historyError}</div>}{!historyLoading && !historyError && revisions.length === 0 && <p className="text-xs text-base-content/40 py-4 text-center">No snapshots yet.</p>}{revisions.map(revision => <button key={revision.revisionId} onClick={() => void openPreview(revision.revisionId)} className="text-left p-3 rounded-xl border border-base-300 hover:border-primary/40 hover:bg-primary/5 transition-colors"><p className="text-xs font-semibold flex items-center gap-1"><CameraIcon className="w-3.5 h-3.5 text-primary" />{revisionTitle(revision)}</p><p className="text-[11px] text-base-content/50 mt-1">{formatDateTime(revision.createdAt)}</p>{revision.createdBy && <p className="text-[11px] text-base-content/40">by {revision.createdBy}</p>}</button>)}</div></aside>}</div>
     <ChatPopout messages={chatMessages} wsStatus={wsStatus} currentUserId={user?.id} onSend={(text) => sendChat(0, documentId, text)} />
     {previewLoading && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"><span className="loading loading-spinner loading-lg text-primary" /></div>}{preview && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPreview(null)}><div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={event => event.stopPropagation()}><div className="flex items-center justify-between px-5 py-4 border-b border-base-300"><div><p className="font-bold flex items-center gap-2"><CameraIcon className="w-4 h-4 text-primary" />{revisionTitle(preview)}</p><p className="text-xs text-base-content/40 mt-0.5">Saved {formatDateTime(preview.createdAt)}</p></div><div className="flex items-center gap-2">{previousRevision && <button onClick={() => void openComparison(preview.revisionId, previousRevision.revisionId)} className="btn btn-primary btn-sm gap-1"><ArrowsRightLeftIcon className="w-4 h-4" />Compare changes</button>}<button onClick={() => setPreview(null)} className="btn btn-ghost btn-sm btn-circle"><XMarkIcon className="w-4 h-4" /></button></div></div><div className="overflow-y-auto p-6"><RevisionContent revision={preview} revisions={revisions} />{!previousRevision && <p className="text-xs text-base-content/40 mt-6">This is the first saved revision, so there is no earlier version to compare.</p>}</div></div></div>}
-    {comparison && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setComparison(null)}><div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={event => event.stopPropagation()}><div className="flex items-center justify-between px-5 py-4 border-b border-base-300"><div><p className="font-bold flex items-center gap-2"><ArrowsRightLeftIcon className="w-4 h-4 text-primary" />Revision changes</p><p className="text-xs text-base-content/40 mt-0.5">{revisionTitle(comparison.newer)} compared with {revisionTitle(comparison.older)}</p></div><button onClick={() => setComparison(null)} className="btn btn-ghost btn-sm btn-circle"><XMarkIcon className="w-4 h-4" /></button></div><div className="px-6 pt-4 text-xs text-base-content/50"><span className="bg-success/25 rounded px-1">Added</span><span className="bg-error/20 text-error rounded px-1 ml-3 line-through">Removed</span></div><div className="overflow-y-auto p-6"><RevisionDiff newer={comparison.newer} older={comparison.older} revisions={revisions} /></div></div></div>}
+    {comparison && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setComparison(null)}><div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={event => event.stopPropagation()}><div className="flex items-center justify-between px-5 py-4 border-b border-base-300"><div><p className="font-bold flex items-center gap-2"><ArrowsRightLeftIcon className="w-4 h-4 text-primary" />Revision changes</p><p className="text-xs text-base-content/40 mt-0.5">{revisionTitle(comparison.newer)} compared with {revisionTitle(comparison.older)}</p></div><button onClick={() => setComparison(null)} className="btn btn-ghost btn-sm btn-circle"><XMarkIcon className="w-4 h-4" /></button></div><div className="px-6 pt-4 text-xs text-base-content/50"><span className="bg-success/25 rounded px-1">Added</span><span className="bg-error/20 text-error rounded px-1 ml-3 line-through">Removed</span><span className="bg-warning/30 text-warning-content rounded px-1 ml-3">Styled</span></div><div className="overflow-y-auto p-6"><RevisionDiff newer={comparison.newer} older={comparison.older} revisions={revisions} /></div></div></div>}
     <ConfirmModal open={deleteOpen} title="Delete Document" description="Are you sure you want to delete this document? This cannot be undone." confirmLabel="Delete" loading={deleting} error={deleteError} onClose={() => { if (!deleting) { setDeleteOpen(false); setDeleteError(null) } }} onConfirm={handleDelete} />
   </div>
 }
