@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import PublicDemoEditor from '../components/PublicDemoEditor'
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
@@ -12,7 +13,7 @@ export default function Home() {
     <div className="flex flex-col">
 
       {/* Hero */}
-      <div className="hero min-h-screen bg-base-200">
+      <div className="hero min-h-screen bg-base-200 py-12">
         <div className="hero-content text-center flex-col gap-8">
           <div>
             <h1 className="text-6xl font-extrabold text-primary">CoLog</h1>
@@ -28,6 +29,8 @@ export default function Home() {
               Get Started
             </Link>
           </div>
+
+          <PublicDemoEditor />
 
           {/* Feature highlights */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 w-full max-w-3xl">
