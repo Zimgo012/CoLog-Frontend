@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-2xl">
-        <p className="mb-2 px-1 text-xs font-bold uppercase tracking-[0.14em] text-base-content/45">Built with:</p>
+        <p className="mb-2 px-1 text-xs font-bold uppercase tracking-[0.14em] text-base-content/45">Experimented with:</p>
         <div className="rounded-2xl border border-base-300 bg-base-100 py-4 shadow-sm">
           <div className="marquee-mask mx-auto max-w-xl overflow-hidden" aria-label="Technology used by CoLog">
             <div className="marquee-track">{[...stack, ...stack].map(([name, logo], index) => <span key={`${name}-${index}`} className="mx-3 inline-flex items-center gap-2.5 whitespace-nowrap rounded-xl border border-[#d4d4d4] bg-[#ededed] px-3 py-2 text-xs font-bold text-[#303030] shadow-[0_2px_6px_rgba(30,30,30,.08)]"><img src={logo} alt="" className="h-5 w-5 object-contain" />{name}</span>)}</div>
