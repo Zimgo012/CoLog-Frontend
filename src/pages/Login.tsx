@@ -4,6 +4,7 @@ import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import { login as loginApi } from "../api/login";
 import { errorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import AuthShell from "../components/AuthShell";
 
 export default function Login() {
 
@@ -65,26 +66,7 @@ export default function Login() {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-base-200 px-4">
-            <div className="card w-full max-w-sm bg-base-100 shadow-xl">
-                <div className="card-body">
-
-                    <Link
-                        to="/"
-                        className="link link-primary"
-                        aria-label="Go to CoLog home"
-                    >
-                        Back to Homepage
-                    </Link>
-
-                    <h2 className="text-2xl font-bold text-center text-primary mb-1">
-                        Welcome back
-                    </h2>
-
-                    <p className="text-center text-base-content/60 text-sm mb-4">
-                        Login to your CoLog account
-                    </p>
-
+        <AuthShell eyebrow="Welcome back" title="Good to see you." description="Log in to continue where you left off.">
                     <form
                         className="flex flex-col gap-4"
                         onSubmit={submit}
@@ -162,9 +144,6 @@ export default function Login() {
                         </Link>
 
                     </p>
-
-                </div>
-            </div>
-        </div>
+        </AuthShell>
     );
 }

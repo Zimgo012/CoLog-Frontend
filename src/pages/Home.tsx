@@ -33,7 +33,6 @@ export default function Home() {
           <div className="mt-8 flex gap-3"><Link to="/register" className="btn btn-primary btn-lg">Get started</Link><Link to="/login" className="btn btn-ghost btn-lg">Log in</Link></div>
         </div>
         <div>
-          <div className="mb-5"><h2 className="text-2xl font-black tracking-[-0.035em]">Try the live demo</h2><p className="mt-1 text-sm text-base-content/60">Open this page in another tab and edit together.</p></div>
           <PublicDemoEditor />
         </div>
       </section>

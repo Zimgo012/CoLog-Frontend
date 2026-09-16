@@ -5,6 +5,7 @@ import { register, verify, type RegisterPayload } from "../api/register";
 import { useAuth } from "../auth/AuthContext";
 import { checkIfUsernameExists } from "../api/user";
 import { errorMessage } from "../api/client";
+import AuthShell from "../components/AuthShell";
 
 type Step = "details" | "verify";
 const initialForm: RegisterPayload = { firstName: "", lastName: "", username: "", email: "", password: "" };
@@ -78,18 +79,8 @@ export default function Register() {
         finally { setLoading(false); }
     }
 
-    return <div className="flex min-h-screen items-center justify-center bg-base-200 px-4 py-8"><div className="card w-full max-w-sm bg-base-100 shadow-xl"><div className="card-body">
-        <Link
-            to="/"
-            className="link link-primary"
-            aria-label="Go to CoLog home"
-        >
-            Back to Homepage
-        </Link>
-
+    return <AuthShell eyebrow={step === "details" ? "Join CoLog" : "One last step"} title={step === "details" ? "Make it yours." : "Check your email."} description={step === "details" ? "Create your account and start writing together." : `Enter the code we sent to ${form.email}.`}>
         {step === "details" ? <>
-            <h1 className="mb-1 text-center text-2xl font-bold text-primary">Create an account</h1>
-            <p className="mb-4 text-center text-sm text-base-content/60">Join CoLog and get started today</p>
             <form className="flex flex-col gap-3" onSubmit={submitRegistration}>
                 {error && <Alert message={error} />}
                 <Field label="First name" value={form.firstName} onChange={update("firstName")} autoComplete="given-name" />
@@ -103,16 +94,13 @@ export default function Register() {
             <p className="mt-4 text-center text-sm text-base-content/60">Already have an account? <Link to="/login" className="link link-primary">Log in</Link></p>
         </> : <>
             <CheckCircleIcon className="mx-auto h-12 w-12 text-success" />
-            <h1 className="mb-1 text-center text-2xl font-bold text-primary">Check your email</h1>
-            <p className="mb-4 text-center text-sm text-base-content/60">Enter the code we sent to <span className="font-medium text-base-content">{form.email}.</span> Check your spam folder too.</p>
             <form className="flex flex-col gap-4" onSubmit={submitVerification}>
                 {error && <Alert message={error} />}{notice && <div role="status" className="alert alert-success py-2.5 px-3.5 text-sm"><span>{notice}</span></div>}
                 <label className="form-control w-full"><div className="label"><span className="label-text">Verification code</span></div><input autoFocus inputMode="numeric" autoComplete="one-time-code" value={code} onChange={event => setCode(event.target.value)} placeholder="Enter your code" className="input input-bordered w-full text-center tracking-[0.25em]" /></label>
                 <button type="submit" className="btn btn-primary w-full" disabled={loading}>{loading ? <span className="loading loading-spinner loading-sm" /> : "Verify email"}</button>
             </form>
             <div className="mt-4 text-center text-sm text-base-content/60">Didn't receive it? <button type="button" className="link link-primary" onClick={resendCode} disabled={loading}>Resend code</button><button type="button" className="btn btn-ghost btn-sm mt-2 w-full" onClick={() => { setStep("details"); setError(null); setNotice(null); }}>Use a different email</button></div>
-        </>}
-    </div></div></div>;
+        </>}</AuthShell>;
 }
 
 function Alert({ message }: { message: string }) { return <div role="alert" className="alert alert-error py-2.5 px-3.5 text-sm"><ExclamationCircleIcon className="h-5 w-5 shrink-0" /><span>{message}</span></div>; }
