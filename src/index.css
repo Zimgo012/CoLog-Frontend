@@ -44,6 +44,34 @@
     box-shadow: 0 16px 32px oklch(var(--bc) / 0.1);
   }
 
+  .chat-send-button:disabled {
+    opacity: 0.52;
+    background-color: oklch(var(--p));
+    border-color: oklch(var(--p));
+    color: oklch(var(--pc));
+  }
+
+  .chat-send-button:disabled svg {
+    opacity: 1;
+  }
+
+  .diary-create-button {
+    background-color: oklch(var(--p));
+    border-color: oklch(var(--p));
+    color: oklch(var(--pc));
+  }
+
+  .diary-create-button svg {
+    opacity: 1;
+  }
+
+  .diary-form-submit:disabled {
+    opacity: 0.52;
+    background-color: oklch(var(--p));
+    border-color: oklch(var(--p));
+    color: oklch(var(--pc));
+  }
+
   .marquee-mask {
     mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
   }

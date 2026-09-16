@@ -119,11 +119,11 @@ export default function ChatPopout({
       <button
         onClick={() => setOpen(o => !o)}
         aria-label="Toggle chat"
-        className={`fixed bottom-6 right-6 z-[9998] w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
-          open ? 'bg-primary text-primary-content' : 'bg-base-100 border border-base-300 text-base-content hover:bg-primary hover:text-primary-content hover:border-primary'
+        className={`fixed bottom-6 right-6 z-[9998] w-14 h-14 rounded-full border border-primary bg-primary text-primary-content shadow-[0_6px_0_oklch(var(--p)/.28)] flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+          open ? 'shadow-none' : 'hover:brightness-105'
         }`}
       >
-        <ChatBubbleLeftRightIcon className="w-6 h-6" />
+        <ChatBubbleLeftRightIcon className="w-6 h-6 stroke-[2.5]" />
         {!open && unread > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-error text-error-content text-[10px] font-bold flex items-center justify-center">
             {unread > 9 ? '9+' : unread}
@@ -210,10 +210,10 @@ export default function ChatPopout({
             <button
               onClick={handleSend}
               disabled={!draft.trim() || wsStatus !== 'connected'}
-              className="btn btn-primary btn-sm btn-circle flex-shrink-0"
+              className="chat-send-button btn btn-primary btn-sm btn-circle flex-shrink-0"
               aria-label="Send"
             >
-              <PaperAirplaneIcon className="w-4 h-4" />
+              <PaperAirplaneIcon className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
         </div>

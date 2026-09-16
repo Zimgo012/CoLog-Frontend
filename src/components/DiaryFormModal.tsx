@@ -167,7 +167,7 @@ export default function DiaryFormModal({
             <button type="button" onClick={onClose} className="btn btn-ghost btn-sm" disabled={saving}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !title.trim()}>
+            <button type="submit" className="diary-form-submit btn btn-primary btn-sm" disabled={saving || !title.trim()}>
               {saving
                 ? <span className="loading loading-spinner loading-xs" />
                 : mode === "add" ? "Create" : "Save"

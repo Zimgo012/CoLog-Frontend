@@ -181,7 +181,7 @@ export default function DiaryList() {
             <h1 className="mt-2 text-4xl font-black tracking-[-0.045em]">Diaries</h1>
             <p className="mt-2 text-sm text-base-content/60">Keep your thoughts, notes, and shared pages together.</p>
           </div>
-          <button onClick={openAdd} className="btn btn-primary gap-1.5 self-start sm:self-auto"><PlusIcon className="w-4 h-4" />New diary</button>
+          <button onClick={openAdd} className="diary-create-button btn btn-primary gap-1.5 self-start shadow-lg sm:self-auto"><PlusIcon className="w-4 h-4 stroke-[2.5]" />New diary</button>
         </header>
 
         {loadError && (
@@ -199,8 +199,8 @@ export default function DiaryList() {
               <div className="card-body items-center text-center py-12">
                 <span className="text-4xl">📓</span>
                 <p className="text-base-content/50 mt-2">No diaries yet. Create your first one!</p>
-                <button onClick={openAdd} className="btn btn-primary btn-sm mt-3 gap-1">
-                  <PlusIcon className="w-4 h-4" /> New Diary
+                <button onClick={openAdd} className="diary-create-button btn btn-primary btn-sm mt-3 gap-1">
+                  <PlusIcon className="w-4 h-4 stroke-[2.5]" /> New Diary
                 </button>
               </div>
             </div>

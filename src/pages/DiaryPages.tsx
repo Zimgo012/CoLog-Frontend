@@ -183,25 +183,24 @@ export default function DiaryPages() {
 
       {/* Body */}
       <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 py-10 max-w-3xl">
+        <div className="container mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-14">
 
             {wsError && <div role="alert" className="alert alert-warning mb-6 text-sm">{wsError}</div>}
 
             {/* Diary header */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl">{diaryEmoji}</span>
+            <header className="mb-10 flex flex-col gap-6 rounded-[2.25rem] bg-base-100 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
+              <div className="flex min-w-0 items-center gap-4">
+                <span className="grid h-16 w-16 shrink-0 place-items-center rounded-[1.4rem] bg-base-200 text-4xl shadow-[0_5px_14px_oklch(var(--bc)/.07)]">{diaryEmoji}</span>
                 <div>
-                  <h1 className="text-2xl font-bold leading-tight">{diaryTitle}</h1>
-                  <p className="text-base-content/40 text-xs mt-0.5">
-                    {documents.length} {documents.length === 1 ? 'entry' : 'entries'} total
-                  </p>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Diary</p>
+                  <h1 className="mt-1 truncate text-3xl font-black tracking-[-0.04em]">{diaryTitle}</h1>
+                  <p className="mt-1 text-sm text-base-content/55">{documents.length} {documents.length === 1 ? 'entry' : 'entries'} saved here</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setCollaboratorsOpen(true)}
-                  className="btn btn-ghost btn-sm gap-1"
+                  className="btn btn-ghost btn-sm gap-1 bg-base-200/70"
                 >
                   <UsersIcon className="w-4 h-4" />
                   Collaborators
@@ -218,31 +217,30 @@ export default function DiaryPages() {
                   New Page
                 </button>
               </div>
-            </div>
+            </header>
 
             {/* Document list */}
             {documents.length === 0 ? (
-              <div className="card bg-base-100 shadow-sm border border-dashed border-base-300">
-                <div className="card-body items-center text-center py-16">
-                  <span className="text-4xl">🗂️</span>
-                  <p className="text-base-content/40 mt-2">No entries yet. Create your first page!</p>
+              <div className="rounded-[2rem] bg-base-100 px-6 py-16 text-center shadow-sm">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-[1.4rem] bg-base-200 text-3xl">🗂️</div>
+                  <p className="mt-5 font-bold">No entries yet</p>
+                  <p className="mt-1 text-sm text-base-content/50">Start the first page in this diary.</p>
+                  <button onClick={handleNewPage} disabled={addingPage} className="btn btn-primary btn-sm mt-5 gap-1"><PlusIcon className="w-4 h-4" />New page</button>
                 </div>
-              </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                {documents.map((doc, index) => (
+              <section>
+                <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-black tracking-[-0.02em]">Entries</h2><span className="text-xs font-semibold text-base-content/45">Newest first</span></div>
+              <div className="flex flex-col gap-3">
+                {documents.map(doc => (
                   <div
                     key={doc.documentId}
                     onClick={() => navigate(`/diary/${id}/pages/${doc.documentId}`, { state: { isOwner } })}
-                    className="card bg-base-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                    className="diary-page-row cursor-pointer rounded-[1.5rem] bg-base-100 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                   >
-                    <div className="card-body flex-row items-center gap-4 py-4 px-5">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-base-200 flex items-center justify-center text-xs font-bold text-base-content/40 group-hover:bg-primary group-hover:text-primary-content transition-colors duration-200">
-                        {index + 1}
-                      </div>
+                    <div className="flex items-center gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{formatDate(doc.date)}</p>
-                        <p className="text-xs text-base-content/40 mt-0.5">{formatTime(doc.date)}</p>
+                        <p className="font-bold">{formatDate(doc.date)}</p>
+                        <p className="mt-0.5 text-xs text-base-content/45">{formatTime(doc.date)}</p>
                       </div>
                       {isOwner && <button
                         type="button"
@@ -251,11 +249,12 @@ export default function DiaryPages() {
                         title="Delete page"
                         aria-label={`Delete page from ${formatDate(doc.date)}`}
                       ><TrashIcon className="w-4 h-4" /></button>}
-                      <DocumentTextIcon className="w-4 h-4 text-base-content/20 group-hover:text-primary flex-shrink-0 transition-colors duration-200" />
+                      <DocumentTextIcon className="h-5 w-5 shrink-0 text-primary/55" />
                     </div>
                   </div>
                 ))}
               </div>
+              </section>
             )}
           </div>
         </main>
