@@ -59,14 +59,16 @@ export default function Home() {
     <main>
       <section className="container mx-auto grid max-w-6xl items-center gap-10 px-5 py-14 md:px-8 lg:min-h-[66vh] lg:grid-cols-2 lg:py-20">
         <div className="max-w-xl">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-primary">Pet project # 1</p>
+          <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Rycca's Build Series</p>
+          <p className="text-sm font-bold uppercase tracking-[0.1em] text-sky-100">Pet Project #1 </p>
           <h1 className="mt-4 text-6xl font-black tracking-[-0.06em] sm:text-8xl">CoLog</h1>
-          <p className="mt-4 text-lg text-base-content/60">A collaborated </p>
-          <div className="mt-8 flex flex-wrap gap-3"><Link to="/register" className="btn btn-primary btn-lg">Get started</Link><Link to="/login" className="btn btn-ghost btn-lg">Log in</Link></div>
+          <p className="mt-4 text-lg text-base-content/60">A real-time collaborative diary and journaling platform built for shared writing, communication, and synchronization. </p>
+          <div className="mt-8 flex flex-wrap gap-3"><Link to="/register" className="btn btn-primary btn-lg">Get
+            started</Link><Link to="/login" className="btn btn-ghost btn-lg">Log in</Link></div>
           <a href={documentationUrl} className="btn btn-secondary btn-sm mt-5 shadow-lg">Read the dev blog here</a>
         </div>
         <div>
-          <PublicDemoEditor />
+          <PublicDemoEditor/>
         </div>
       </section>
 
