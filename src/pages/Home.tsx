@@ -3,8 +3,40 @@ import { MoonIcon, SunIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import PublicDemoEditor from '../components/PublicDemoEditor'
+import reactLogo from '../../assets/React.svg'
+import typeScriptLogo from '../../assets/TypeScript.svg'
+import viteLogo from '../../assets/Vite.js.svg'
+import javaLogo from '../../assets/Java.svg'
+import springLogo from '../../assets/Spring.svg'
+import redisLogo from '../../assets/Redis.svg'
+import postgresLogo from '../../assets/PostgresSQL.svg'
+import kafkaLogo from '../../assets/Apache Kafka.svg'
+import rabbitMqLogo from '../../assets/RabbitMQ.svg'
+import dockerLogo from '../../assets/Docker.svg'
+import githubActionsLogo from '../../assets/GitHub Actions.svg'
+import vercelLogo from '../../assets/Vercel.svg'
+import renderLogo from '../../assets/Render Symbol SVG.svg'
+import yjsLogo from '../../assets/yjs.svg'
+import WebSocketLogo from '../../assets/websocket.svg'
 
-const stack = ['React', 'TypeScript', 'Vite', 'Tailwind CSS', 'daisyUI', 'Yjs', 'ProseMirror', 'STOMP', 'WebSockets']
+const stack = [
+  ['React', reactLogo],
+  ['TypeScript', typeScriptLogo],
+  ['Vite', viteLogo],
+  ['Java', javaLogo],
+  ['Spring', springLogo],
+  ['Redis', redisLogo],
+  ['PostgreSQL', postgresLogo],
+  ['Apache Kafka', kafkaLogo],
+  ['RabbitMQ', rabbitMqLogo],
+  ['Docker', dockerLogo],
+  ['GitHub Actions', githubActionsLogo],
+  ['Vercel', vercelLogo],
+  ['Render', renderLogo],
+  ['Y.js', yjsLogo],
+  ['WebSocket', WebSocketLogo],
+]
+const documentationUrl = '#'
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
@@ -29,8 +61,9 @@ export default function Home() {
         <div className="max-w-xl">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-primary">Pet project # 1</p>
           <h1 className="mt-4 text-6xl font-black tracking-[-0.06em] sm:text-8xl">CoLog</h1>
-          <p className="mt-4 text-lg text-base-content/60">A shared space for thoughts, notes, and every version in between.</p>
-          <div className="mt-8 flex gap-3"><Link to="/register" className="btn btn-primary btn-lg">Get started</Link><Link to="/login" className="btn btn-ghost btn-lg">Log in</Link></div>
+          <p className="mt-4 text-lg text-base-content/60">A collaborated </p>
+          <div className="mt-8 flex flex-wrap gap-3"><Link to="/register" className="btn btn-primary btn-lg">Get started</Link><Link to="/login" className="btn btn-ghost btn-lg">Log in</Link></div>
+          <a href={documentationUrl} className="btn btn-secondary btn-sm mt-5 shadow-lg">Read the dev blog here</a>
         </div>
         <div>
           <PublicDemoEditor />
@@ -41,9 +74,7 @@ export default function Home() {
         <p className="mb-2 px-1 text-xs font-bold uppercase tracking-[0.14em] text-base-content/45">Built with:</p>
         <div className="rounded-2xl border border-base-300 bg-base-100 py-4 shadow-sm">
           <div className="marquee-mask mx-auto max-w-xl overflow-hidden" aria-label="Technology used by CoLog">
-            <div className="marquee-track">{[...stack, ...stack].map((name, index) => <span key={`${name}-${index}`}
-                                                                                            className="mx-3 inline-flex items-center gap-3 whitespace-nowrap text-sm font-bold text-base-content/65"><span
-                className="h-2 w-2 rounded-full bg-primary"/>{name}</span>)}</div>
+            <div className="marquee-track">{[...stack, ...stack].map(([name, logo], index) => <span key={`${name}-${index}`} className="mx-3 inline-flex items-center gap-2.5 whitespace-nowrap rounded-xl border border-[#d4d4d4] bg-[#ededed] px-3 py-2 text-xs font-bold text-[#303030] shadow-[0_2px_6px_rgba(30,30,30,.08)]"><img src={logo} alt="" className="h-5 w-5 object-contain" />{name}</span>)}</div>
           </div>
         </div>
       </section>

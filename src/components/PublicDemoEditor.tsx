@@ -160,7 +160,7 @@ export default function PublicDemoEditor() {
         <div className="flex flex-col items-start gap-2 px-5 py-3 border-b border-base-200 bg-base-100 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h2 className="font-bold text-base-content">Try live collaboration</h2>
-            <p className="text-xs text-base-content/60">Open this page in another tab and edit together.</p>
+            <p className="text-xs text-base-content/60">Everyone viewing this public demo will see your changes.</p>
           </div>
           <span className={`badge h-auto max-w-full gap-1 whitespace-normal py-1.5 text-left ${connection === 'connected' ? 'badge-success' : 'badge-ghost'}`}>
             <span className={`w-2 h-2 rounded-full ${connection === 'connected' ? 'bg-success-content animate-pulse' : 'bg-base-content/40'}`} />
@@ -171,7 +171,6 @@ export default function PublicDemoEditor() {
           value={value}
           onChange={(event) => edit(event.target.value)}
           className="textarea textarea-ghost w-full min-h-52 rounded-none resize-y text-base leading-relaxed focus:outline-none"
-          placeholder="Start typing here — everyone viewing this public demo will see your changes."
           aria-label="Shared public demo editor"
         />
         {error && <p className="px-5 pb-3 text-xs text-error">{error}</p>}
