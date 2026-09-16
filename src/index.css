@@ -72,6 +72,17 @@
     color: oklch(var(--pc));
   }
 
+  .snapshot-save-button:disabled {
+    opacity: 0.48;
+    background-color: oklch(var(--p));
+    border-color: oklch(var(--p));
+    color: oklch(var(--pc));
+  }
+
+  .snapshot-save-button:disabled svg {
+    opacity: 1;
+  }
+
   .marquee-mask {
     mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
   }

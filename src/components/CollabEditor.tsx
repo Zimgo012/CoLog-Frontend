@@ -5,7 +5,7 @@
  * - Presence bar shows remote users from YJS awareness
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { CameraIcon, BoldIcon, ItalicIcon } from '@heroicons/react/24/outline'
+import { CameraIcon, BoldIcon, ItalicIcon, ClockIcon, TrashIcon, ArrowUturnLeftIcon, ArrowUturnRightIcon } from '@heroicons/react/24/outline'
 import * as Y from 'yjs'
 import * as awarenessProtocol from 'y-protocols/awareness'
 import { Client } from '@stomp/stompjs'
@@ -61,9 +61,12 @@ interface CollabEditorProps {
   userName:   string
   onSaveSnapshot: (yjsUpdate: Uint8Array) => Promise<void>
   onSnapshotError?: (error: unknown) => void
+  onToggleHistory?: () => void
+  onDelete?: () => void
+  historyOpen?: boolean
 }
 
-export default function CollabEditor({ diaryId, documentId, userId, userName, onSaveSnapshot, onSnapshotError }: CollabEditorProps) {
+export default function CollabEditor({ diaryId, documentId, userId, userName, onSaveSnapshot, onSnapshotError, onToggleHistory, onDelete, historyOpen = false }: CollabEditorProps) {
   const mountRef    = useRef<HTMLDivElement>(null)
   const editorRef = useRef<EditorView | null>(null)
   const saveSnapshotRef = useRef<(() => Promise<void>) | null>(null)
@@ -72,10 +75,17 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
   const [savingSnapshot, setSavingSnapshot] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'waiting' | 'saving' | 'error'>('saved')
+  const [isMac, setIsMac] = useState(false)
+
+  useEffect(() => { setIsMac(/Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)) }, [])
 
   const runMarkCommand = useCallback((name: 'strong' | 'em') => {
     const view = editorRef.current
     if (view) toggleMark(editorSchema.marks[name])(view.state, view.dispatch, view)
+  }, [])
+  const runHistoryCommand = useCallback((action: 'undo' | 'redo') => {
+    const view = editorRef.current
+    if (view) (action === 'undo' ? undo : redo)(view.state, view.dispatch, view)
   }, [])
   const applyTextStyle = useCallback((attrs: { fontFamily?: string | null; fontSize?: string | null }) => {
     const view = editorRef.current
@@ -412,10 +422,10 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex h-full flex-col bg-base-100">
 
       {/* Top bar: presence + hints */}
-      <div className="flex items-center gap-3 px-5 py-2 border-b border-base-200 bg-base-100 select-none min-h-[40px]">
+      <div className="flex min-h-[48px] flex-wrap items-center gap-3 border-b border-base-300/60 bg-base-200/60 px-5 py-2.5 select-none">
 
         {/* Remote users presence avatars */}
         {remoteUsers.length > 0 && (
@@ -436,43 +446,44 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
           </div>
         )}
 
-        {/* Keyboard hint + save status */}
-        <div className="ml-auto flex items-center gap-3 text-[11px] text-base-content/40">
+        {/* Clickable keyboard controls — useful on touch devices too. */}
+        <div className="flex items-center rounded-2xl bg-base-100/80 p-1 shadow-[0_2px_8px_oklch(var(--bc)/.05)]">
+          <button type="button" onClick={() => runHistoryCommand('undo')} className="btn btn-ghost btn-sm gap-1 px-2" title={`Undo (${isMac ? '⌘' : 'Ctrl'} + Z)`}><ArrowUturnLeftIcon className="h-4 w-4" /><kbd className="kbd kbd-xs">{isMac ? '⌘ Z' : 'Ctrl Z'}</kbd></button>
+          <button type="button" onClick={() => runHistoryCommand('redo')} className="btn btn-ghost btn-sm gap-1 px-2" title={`Redo (${isMac ? '⌘' : 'Ctrl'} + Y)`}><ArrowUturnRightIcon className="h-4 w-4" /><kbd className="kbd kbd-xs">{isMac ? '⌘ Y' : 'Ctrl Y'}</kbd></button>
+        </div>
+
+        {/* Document actions */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1 rounded-full bg-base-100/85 p-1.5 shadow-[0_2px_8px_oklch(var(--bc)/.07)]">
+          {onToggleHistory && <button type="button" onClick={onToggleHistory} className={`btn btn-sm btn-circle ${historyOpen ? 'btn-primary' : 'btn-ghost'}`} title="Revision history" aria-label="Revision history"><ClockIcon className="h-4 w-4" /></button>}
           <button
             type="button"
             onClick={() => { void saveSnapshotRef.current?.() }}
             disabled={savingSnapshot || autoSaveStatus === 'waiting' || autoSaveStatus === 'saving'}
-            className="btn btn-ghost btn-xs gap-1 normal-case text-base-content/60"
+            className="snapshot-save-button btn btn-primary btn-sm gap-1.5 whitespace-nowrap"
             title={autoSaveStatus === 'waiting' || autoSaveStatus === 'saving' ? 'Wait for the current edits to auto-save before creating a snapshot' : 'Save a revision snapshot'}
           >
-            {savingSnapshot ? <span className="loading loading-spinner loading-xs" /> : <CameraIcon className="w-3.5 h-3.5" />}
-            Save snapshot
+            {savingSnapshot ? <span className="loading loading-spinner loading-xs" /> : <CameraIcon className="w-4 h-4" />} Save snapshot
           </button>
-          <span><kbd className="kbd kbd-xs">Ctrl+Z</kbd> Undo</span>
-          <span><kbd className="kbd kbd-xs">Ctrl+Y</kbd> Redo</span>
-          <span className={`flex items-center gap-1 ${autoSaveStatus === 'error' ? 'text-error' : 'opacity-60'}`}>
-            {(autoSaveStatus === 'waiting' || autoSaveStatus === 'saving') && <span className="loading loading-spinner loading-xs" />}
-            {autoSaveStatus === 'waiting' ? 'Auto-save pending' : autoSaveStatus === 'saving' ? 'Saving…' : autoSaveStatus === 'error' ? 'Auto-save failed' : 'Auto-saved'}
-          </span>
+          {onDelete && <button type="button" onClick={onDelete} className="btn btn-ghost btn-sm btn-circle text-error" title="Delete document" aria-label="Delete document"><TrashIcon className="h-4 w-4" /></button>}
         </div>
       </div>
 
       {/* Formatting toolbar */}
-      <div className="flex flex-wrap items-center gap-1 px-5 py-2 border-b border-base-200 bg-base-100">
-        <div className="join">
+      <div className="flex flex-wrap items-center gap-2 border-b border-base-300/60 bg-base-100 px-5 py-3">
+        <div className="join rounded-xl bg-base-200 p-0.5">
           <button type="button" onMouseDown={event => event.preventDefault()} onClick={() => runMarkCommand('strong')} className="btn btn-ghost btn-sm join-item" title="Bold"><BoldIcon className="w-4 h-4" /></button>
           <button type="button" onMouseDown={event => event.preventDefault()} onClick={() => runMarkCommand('em')} className="btn btn-ghost btn-sm join-item" title="Italic"><ItalicIcon className="w-4 h-4" /></button>
         </div>
-        <div className="h-5 border-l border-base-300 mx-1" />
+        <div className="mx-1 h-5 border-l border-base-300" />
         <label className="sr-only" htmlFor="font-family">Font family</label>
-        <select id="font-family" defaultValue="" onChange={event => applyTextStyle({ fontFamily: event.target.value || null })} className="select select-bordered select-sm w-36 text-xs" title="Font family">
+        <select id="font-family" defaultValue="" onChange={event => applyTextStyle({ fontFamily: event.target.value || null })} className="select select-bordered select-sm w-36 rounded-xl bg-base-200 text-xs" title="Font family">
           <option value="">Default font</option>
           <option value="Arial, sans-serif">Arial</option>
           <option value="Georgia, serif">Georgia</option>
           <option value="'Courier New', monospace">Courier New</option>
         </select>
         <label className="sr-only" htmlFor="font-size">Font size</label>
-        <select id="font-size" defaultValue="" onChange={event => applyTextStyle({ fontSize: event.target.value || null })} className="select select-bordered select-sm w-28 text-xs" title="Font size">
+        <select id="font-size" defaultValue="" onChange={event => applyTextStyle({ fontSize: event.target.value || null })} className="select select-bordered select-sm w-28 rounded-xl bg-base-200 text-xs" title="Font size">
           <option value="">Font size</option>
           <option value="12px">12 px</option>
           <option value="14px">14 px</option>
@@ -488,9 +499,11 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
         ref={mountRef}
         className="
           flex-1 overflow-y-auto
-          px-12 py-10
+          px-6 pb-16 pt-8 sm:px-10 sm:pb-16 sm:pt-10
           bg-base-100
           [&_.ProseMirror]:outline-none
+          [&_.ProseMirror]:mx-auto
+          [&_.ProseMirror]:max-w-[46rem]
           [&_.ProseMirror]:min-h-[520px]
           [&_.ProseMirror]:text-base
           [&_.ProseMirror]:leading-relaxed
@@ -534,6 +547,10 @@ export default function CollabEditor({ diaryId, documentId, userId, userName, on
           [&_.ProseMirror_hr]:my-4
         "
       />
+      <div className={`pointer-events-none absolute bottom-4 right-5 flex items-center gap-1.5 rounded-full bg-base-200/90 px-3 py-1.5 text-[11px] shadow-sm backdrop-blur ${autoSaveStatus === 'error' ? 'text-error' : 'text-base-content/55'}`}>
+        {(autoSaveStatus === 'waiting' || autoSaveStatus === 'saving') && <span className="loading loading-spinner loading-xs" />}
+        {autoSaveStatus === 'waiting' ? 'Saving soon' : autoSaveStatus === 'saving' ? 'Saving…' : autoSaveStatus === 'error' ? 'Auto-save failed' : 'Auto-saved'}
+      </div>
     </div>
   )
 }
