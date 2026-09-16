@@ -173,30 +173,25 @@ export default function DiaryList() {
 
       <Navbar />
 
-      <main className="flex-1 container mx-auto px-4 py-10 max-w-5xl">
+      <main className="flex-1 container mx-auto max-w-6xl px-5 py-10 md:px-8 md:py-14">
 
-        {/* Greeting */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold">Good day! 👋</h1>
-          <p className="text-base-content/50 mt-1 text-sm">Here are your diaries.</p>
-        </div>
+        <header className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Your workspace</p>
+            <h1 className="mt-2 text-4xl font-black tracking-[-0.045em]">Diaries</h1>
+            <p className="mt-2 text-sm text-base-content/60">Keep your thoughts, notes, and shared pages together.</p>
+          </div>
+          <button onClick={openAdd} className="btn btn-primary gap-1.5 self-start sm:self-auto"><PlusIcon className="w-4 h-4" />New diary</button>
+        </header>
 
         {loadError && (
           <div role="alert" className="alert alert-error mb-6 text-sm">{loadError}</div>
         )}
 
         {/* My Diaries */}
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <BookOpenIcon className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-bold">My Diaries</h2>
-              <span className="badge badge-primary badge-sm">{myDiaries.length}</span>
-            </div>
-            <button onClick={openAdd} className="btn btn-primary btn-sm gap-1">
-              <PlusIcon className="w-4 h-4" />
-              New Diary
-            </button>
+        <section className="mb-14">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary/15 text-primary"><BookOpenIcon className="w-4 h-4" /></span><h2 className="text-xl font-black tracking-[-0.025em]">My diaries</h2><span className="badge badge-primary badge-sm">{myDiaries.length}</span></div><p className="mt-2 text-sm text-base-content/55">Your private and collaborative home base.</p></div>
           </div>
 
           {myDiaries.length === 0 ? (
@@ -210,11 +205,12 @@ export default function DiaryList() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {myDiaries.map(diary => (
                 <DiaryCard
                   key={diary.id}
                   diary={diary}
+                  index={myDiaries.indexOf(diary)}
                   onEdit={openEdit}
                   onDelete={diary => { setDeleteError(null); setDeleteTarget(diary) }}
                 />
@@ -225,11 +221,7 @@ export default function DiaryList() {
 
         {/* Collaborated Diaries */}
         <section>
-          <div className="flex items-center gap-2 mb-4">
-            <UsersIcon className="w-5 h-5 text-secondary" />
-            <h2 className="text-lg font-bold">Collaborated Diaries</h2>
-            <span className="badge badge-secondary badge-sm">{collaboratedDiaries.length}</span>
-          </div>
+          <div className="mb-5"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-secondary text-secondary-content"><UsersIcon className="w-4 h-4" /></span><h2 className="text-xl font-black tracking-[-0.025em]">Shared with me</h2><span className="badge badge-secondary badge-sm">{collaboratedDiaries.length}</span></div><p className="mt-2 text-sm text-base-content/55">Diaries your collaborators have invited you into.</p></div>
 
           {collaboratedDiaries.length === 0 ? (
             <div className="card bg-base-100 shadow-sm border border-dashed border-base-300">
@@ -239,9 +231,9 @@ export default function DiaryList() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {collaboratedDiaries.map(diary => (
-                <DiaryCard key={diary.id} diary={diary} isCollaborated />
+                <DiaryCard key={diary.id} diary={diary} index={collaboratedDiaries.indexOf(diary)} isCollaborated />
               ))}
             </div>
           )}

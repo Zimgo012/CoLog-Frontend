@@ -82,6 +82,7 @@ interface Diary {
 
 interface DiaryCardProps {
   diary: Diary
+  index?: number
   isCollaborated?: boolean
   onEdit?: (diary: Diary) => void
   onDelete?: (diary: Diary) => void
@@ -103,6 +104,7 @@ function formatDate(dateStr: string): string {
 
 export default function DiaryCard({
   diary,
+  index = 0,
   isCollaborated = false,
   onEdit,
   onDelete,
@@ -113,41 +115,24 @@ export default function DiaryCard({
   const diaryEmoji = getDiaryEmoji(diary.emoji)
 
   return (
-    <div className="card bg-base-100 shadow-md hover:shadow-lg transition-shadow duration-200 group overflow-hidden">
-      {/* Color header + emoji */}
-      <div
-        className="flex items-center justify-center py-6 relative"
-        style={{
-          backgroundColor: diaryColor,
-        }}
-      >
-        {/* Use a translucent overlay instead of appending "33" to the color */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundColor: '#ffffff',
-            opacity: 0.8,
-          }}
-        />
-
-        <span
-          className="relative z-10 text-4xl leading-none select-none
-                     group-hover:scale-110 transition-transform duration-200"
-          role="img"
-          aria-label={`${diary.title} emoji`}
-        >
-          {diaryEmoji}
-        </span>
-
-        {!isCollaborated && (
-          <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="diary-card diary-card-marshmallow card relative overflow-hidden border-0 bg-base-100 shadow-sm transition-all duration-200 hover:-translate-y-1" style={{ animationDelay: `${index * 60}ms` }}>
+      <span className="absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-20" style={{ backgroundColor: diaryColor }} />
+      <span className="absolute -bottom-14 -left-10 h-28 w-28 rounded-full opacity-10" style={{ backgroundColor: diaryColor }} />
+      <div className="card-body relative gap-5 p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[1.3rem] bg-base-200 text-2xl shadow-[0_5px_14px_oklch(var(--bc)/.08)]" role="img" aria-label={`${diary.title} emoji`}>{diaryEmoji}</span>
+            <div className="min-w-0"><h3 className="truncate text-lg font-black tracking-[-0.025em]">{diary.title}</h3><p className="mt-1 text-xs text-base-content/50">{formatDate(diary.createdAt)}</p></div>
+          </div>
+          {!isCollaborated && (
+          <div className="flex shrink-0 gap-1">
             {onEdit && (
               <button
                 onClick={e => {
                   e.stopPropagation()
                   onEdit(diary)
                 }}
-                className="btn btn-xs btn-ghost bg-base-100/70 hover:bg-base-100 rounded-lg"
+                className="btn btn-xs btn-ghost btn-circle"
                 title="Edit diary"
                 aria-label="Edit diary"
               >
@@ -161,50 +146,29 @@ export default function DiaryCard({
                   e.stopPropagation()
                   onDelete(diary)
                 }}
-                className="btn btn-xs btn-ghost bg-base-100/70 hover:bg-error hover:text-error-content rounded-lg"
+                className="btn btn-xs btn-ghost btn-circle text-base-content/45 hover:text-error"
                 title="Delete diary"
                 aria-label="Delete diary"
               >
                 <TrashIcon className="w-3.5 h-3.5" />
               </button>
             )}
-          </div>
-        )}
-      </div>
-
-      <div className="card-body p-4 gap-2">
-        <h3 className="font-bold text-base leading-tight line-clamp-2">
-          {diary.title}
-        </h3>
-
-        {isCollaborated && diary.owner && (
-          <div className="flex items-center gap-1">
-            <span className="badge badge-secondary badge-xs">
-              collab
-            </span>
-
-            <span className="text-xs text-base-content/50">
-              by {diary.owner}
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-center gap-1 text-xs text-base-content/50 mt-1">
-          <span aria-hidden="true">🗓️</span>
-          <span>Created {formatDate(diary.createdAt)}</span>
+          </div>)}
         </div>
 
-        <div className="card-actions mt-2">
+        {isCollaborated && diary.owner && (
+          <div className="flex items-center gap-2 rounded-2xl bg-base-200/75 px-3 py-2 text-xs"><span className="badge badge-secondary badge-xs">shared</span><span className="text-base-content/60">by {diary.owner}</span></div>
+        )}
+
+        <div className="card-actions mt-auto pt-1">
           <button
             onClick={() => navigate(`/diary/${diary.id}/pages`, {
               state: { isOwner: !isCollaborated },
             })}
-className="btn btn-xs btn-ghost w-full border border-base-300 hover:btn-primary transition-all"
-    >
-    Open Diary
-</button>
-</div>
-</div>
-</div>
-)
+            className="btn btn-sm btn-ghost w-full border-0 bg-base-200/80 hover:btn-primary"
+          >Open diary</button>
+        </div>
+      </div>
+    </div>
+  )
 }

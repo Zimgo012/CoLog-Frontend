@@ -31,6 +31,19 @@
     background-size: 18px 18px;
   }
 
+  .diary-card {
+    animation: diary-card-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .diary-card-marshmallow {
+    border-radius: 2rem;
+    box-shadow: 0 10px 24px oklch(var(--bc) / 0.06);
+  }
+
+  .diary-card-marshmallow:hover {
+    box-shadow: 0 16px 32px oklch(var(--bc) / 0.1);
+  }
+
   .marquee-mask {
     mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
   }
@@ -71,16 +84,16 @@
   .btn-primary {
     border-color: oklch(var(--p) / 0.66);
     background-image: linear-gradient(145deg, oklch(var(--p) / 0.94), oklch(var(--p)));
-    box-shadow: 0 4px 0 oklch(var(--p) / 0.28), inset 0 1px 0 oklch(100% 0 0 / 0.3);
+    box-shadow: 0 4px 0 oklch(var(--p) / 0.28);
   }
 
   .btn-primary:not(:disabled):hover {
     border-color: oklch(var(--p));
-    box-shadow: 0 7px 0 oklch(var(--p) / 0.25), inset 0 1px 0 oklch(100% 0 0 / 0.38);
+    box-shadow: 0 7px 0 oklch(var(--p) / 0.25);
   }
 
   .btn-primary:active {
-    box-shadow: 0 2px 0 oklch(var(--p) / 0.26), inset 0 1px 0 oklch(0% 0 0 / 0.08);
+    box-shadow: 0 2px 0 oklch(var(--p) / 0.26);
   }
 
   .btn-ghost {
@@ -94,7 +107,7 @@
   }
 
   .btn-error:not(:disabled):hover {
-    box-shadow: 0 7px 0 oklch(var(--er) / 0.24), inset 0 1px 0 oklch(100% 0 0 / 0.24);
+    box-shadow: 0 7px 0 oklch(var(--er) / 0.24);
   }
 
   .btn-circle {
@@ -111,8 +124,13 @@
   to { transform: translateX(-50%); }
 }
 
+@keyframes diary-card-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .marquee-track { animation: none; }
+  .marquee-track, .diary-card { animation: none; }
 }
 
 /* ── Remote cursor caret ──────────────────────────────────────── */
