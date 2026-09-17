@@ -10,14 +10,14 @@ import javaLogo from '../../assets/Java.svg'
 import springLogo from '../../assets/Spring.svg'
 import redisLogo from '../../assets/Redis.svg'
 import postgresLogo from '../../assets/PostgresSQL.svg'
-import kafkaLogo from '../../assets/Apache Kafka.svg'
-import rabbitMqLogo from '../../assets/RabbitMQ.svg'
 import dockerLogo from '../../assets/Docker.svg'
 import githubActionsLogo from '../../assets/GitHub Actions.svg'
-import vercelLogo from '../../assets/Vercel.svg'
 import renderLogo from '../../assets/Render Symbol SVG.svg'
 import yjsLogo from '../../assets/yjs.svg'
 import WebSocketLogo from '../../assets/websocket.svg'
+import aivenLogo from '../../assets/aiven.jpg'
+import cloudflareLogo from '../../assets/cloudflare.svg'
+import upstashLogo from '../../assets/upstash.svg'
 
 const stack = [
   ['React', reactLogo],
@@ -27,14 +27,15 @@ const stack = [
   ['Spring', springLogo],
   ['Redis', redisLogo],
   ['PostgreSQL', postgresLogo],
-  ['Apache Kafka', kafkaLogo],
-  ['RabbitMQ', rabbitMqLogo],
   ['Docker', dockerLogo],
   ['GitHub Actions', githubActionsLogo],
-  ['Vercel', vercelLogo],
-  ['Render', renderLogo],
   ['Y.js', yjsLogo],
   ['WebSocket', WebSocketLogo],
+  ['Render', renderLogo],
+  ['Aiven', aivenLogo],
+  ['Cloudflare', cloudflareLogo],
+  ['Upstash', upstashLogo],
+
 ]
 const documentationUrl = '#'
 
