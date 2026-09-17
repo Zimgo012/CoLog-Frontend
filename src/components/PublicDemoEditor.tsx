@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Client } from '@stomp/stompjs'
 import * as Y from 'yjs'
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8083'
+const WS_URL = import.meta.env.VITE_WS_URL
 
 type ConnectionState = 'connecting' | 'connected' | 'offline'
 

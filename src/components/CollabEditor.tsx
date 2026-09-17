@@ -23,8 +23,8 @@ import {
 import { presencePluginKey, createPresencePlugin } from '../lib/presencePlugin'
 import { editorSchema } from '../lib/editorSchema'
 
-const WS_URL  = import.meta.env.VITE_WS_URL  ?? 'ws://localhost:8083'
-const API_URL = import.meta.env.VITE_API_URL  ?? 'http://localhost:8083'
+const WS_URL  = import.meta.env.VITE_WS_URL
+const API_URL = import.meta.env.VITE_API_URL
 
 function userColor(userId: number): string {
   const p = ['#ef4444','#3b82f6','#22c55e','#a855f7','#f97316','#14b8a6','#92400e']

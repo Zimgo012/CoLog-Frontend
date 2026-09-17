@@ -1,6 +1,6 @@
 import { Client, type StompSubscription } from "@stomp/stompjs";
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:8083";
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
