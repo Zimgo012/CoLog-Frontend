@@ -2,6 +2,11 @@
 
 CoLog is a real-time collaborative diary and journaling application. This repository contains its responsive web client: a space where users can create diaries, invite collaborators, co-write rich-text entries, chat in context, and revisit earlier revisions.
 
+The CoLog backend is maintained in a separate repository:
+
+CoLog Backend:
+https://github.com/Zimgo012/CoLog-Backend
+
 ## Highlights
 
 - Secure registration and sign-in with JWT-backed protected routes
